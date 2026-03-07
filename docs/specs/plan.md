@@ -1,4 +1,4 @@
-# Menu Calculator — Plan (plan.md)
+# Cmd district — Plan (plan.md)
 
 ## 1. Scope & Milestones : per milestone validate with me.
 
