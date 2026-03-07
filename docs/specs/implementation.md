@@ -112,6 +112,9 @@ Runtime order:
 ### 5.4 Security (v1 local)
 - Passwords stored in plain text (for demo only). No tokens/sessions.
 
+
+### classes and functions 
+- private fields with prefix of _ 
 ---
 
 ## 6) InMemory Stores (No DB)
@@ -129,133 +132,534 @@ Runtime order:
 
 ---
 
-## 7) Model Actions — Implementation Descriptions (Local)
+## 7) Model Actions — Implementation Descriptions (Local, LINQ-Only, Numbered)
 
-> Each action touches **InMemory Stores** only. Use `DateProvider.UtcNow` for timestamps when needed.
+> All actions operate on **in‑memory lists** in `AppState` using **LINQ** (no services, no stores).  
+> Use `DateProvider.UtcNow` for timestamps where needed.
 
 ### 7.1 `User` (abstract, `cmdDistrict.Models.Entities`)
-- **Attributes**: `id : string`, `Name`, `Email`, `Password`, `Role`
-- **Login(email, password) ⇒ (bool success, string userId, string role)**  
-  `UserStore.GetByEmail(email)`; compare password; return tuple.
-- **Sign(name, email, password, role) ⇒ (bool success, string userId)**  
-  Fail if email exists; create user with new Guid; `UserStore.Add(user)`.
-- **Logout() ⇒ bool**  
-  No-op in local mode; return `true`.
-- **GetRole(userId) ⇒ string**  
-  Returns user's role from store.
+
+**Attributes**: `id : string`, `Name`, `Email`, `Password`, `Role`
+
+#### 7.1.1 Login(email, password) ⇒ (bool success, string userId, string role)
+1) **Normalize**: `email = email?.Trim()`; `password = password ?? ""`.  
+2) **Find user (LINQ)**:  
+   `var user = AppState.Users.SingleOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));`  
+3) **Compare**: if `user != null && user.Password == password` → **return** `(true, user.Id, user.Role)`.  
+4) **Else** **return** `(false, "", "")`.
+
+**Failure cases**
+1) Empty email/password → `(false, "", "")`.  
+2) No user with email → `(false, "", "")`.  
+3) Password mismatch → `(false, "", "")`.
+
+---
+
+#### 7.1.2 Sign(name, email, password, role) ⇒ (bool success, string userId)
+> **Id rule:** `id = $"{DateProvider.UtcNow:yyyyMMddHHmmss}-{Random(6 digits)}"` (date + random).
+1) **Normalize & validate**: non‑empty `name/email/password`, `password.Length ≥ 6`, `role ∈ {"Customer","Administrator"}`.  
+2) **Uniqueness (LINQ)**:  
+   `if (AppState.Users.Any(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase))) return (false, "");`  
+3) **Generate id**: date+random string.  
+4) **Construct** user instance.  
+5) **Add (LINQ list op)**: `AppState.Users.Add(user)`.  
+6) **Return** `(true, user.Id)`.
+
+**Failure cases**
+1) Invalid inputs/role → `(false, "")`.  
+2) Email already exists → `(false, "")`.
+
+---
+
+#### 7.1.3 Logout() ⇒ bool
+1) **Signal UI** to clear `GlobalMenuHolder.CurrentUserId`.  
+2) **Return** `true`.
+
+**Failure cases**
+1) None (local no‑op).
+
+---
+
+#### 7.1.4 GetRole(userId) ⇒ string
+1) **Lookup (LINQ)**:  
+   `var user = AppState.Users.SingleOrDefault(u => u.Id == userId);`  
+2) **Return** `user.Role`.
+
+**Failure cases**
+1) `user == null` → throw `InvalidOperationException("User not found")`.
+
+---
 
 ### 7.2 `Customer : User`
-- **Attributes**: `WalletBalance`, `DefaultShippingAddress`
-- **Deposit(userId, amount) ⇒ bool**  
-  Validate `amount > 0`; increment and persist on `UserStore`.
-- **ViewOrders(userId) ⇒ List<Order>**  
-  `OrderStore.GetByCustomer(userId)`.
-- **ViewCart(userId) ⇒ Cart**  
-  `CartStore.GetOrCreate(userId)`.
+
+**Attributes**: `WalletBalance`, `DefaultShippingAddress`
+
+#### 7.2.1 Deposit(userId, amount) ⇒ bool
+1) **Validate**: `amount > 0`.  
+2) **Find (LINQ)**:  
+   `var c = AppState.Users.SingleOrDefault(u => u.Id == userId && u.Role == "Customer");`  
+3) **Update**: `c.WalletBalance += amount`.  
+4) **Return** `true`.
+
+**Failure cases**
+1) `amount <= 0` → `false`.  
+2) Not found / wrong role → `false`.
+
+---
+
+#### 7.2.2 ViewOrders(userId) ⇒ List<Order>
+1) **Query (LINQ)**:  
+   `AppState.Orders.Where(o => o.CustomerId == userId).OrderByDescending(o => o.CreatedAt).ToList();`  
+2) **Return** list.
+
+**Failure cases**
+1) None (empty list ok).
+
+---
+
+#### 7.2.3 ViewCart(userId) ⇒ Cart
+1) **Find (LINQ)**:  
+   `var cart = AppState.Carts.SingleOrDefault(c => c.CustomerId == userId);`  
+2) **Create if missing**: new `Cart { CustomerId = userId }` and `AppState.Carts.Add(cart)`.  
+3) **Return** cart.
+
+**Failure cases**
+1) None.
+
+---
 
 ### 7.3 `Administrator : User`
-- **AdjustInventory(userId, productId, delta) ⇒ bool**  
-  Require role `Administrator`; `ProductStore.Get(productId).Stock += delta` (disallow < 0).
-- **ListAllOrders(userId) ⇒ List<Order>**  
-  Require role `Administrator`; return all from `OrderStore`.
-- **GenerateReport(userId, from, to) ⇒ string**  
-  Require role `Administrator`; aggregate orders in range and return text.
+
+#### 7.3.1 AdjustInventory(userId, productId, delta) ⇒ bool
+1) **Auth**:  
+   `AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator")`.  
+2) **Find product (LINQ)**:  
+   `var p = AppState.Products.SingleOrDefault(x => x.Id == productId);`  
+3) **Compute**: `var newStock = p.Stock + delta;`  
+4) **Validate**: `newStock >= 0`.  
+5) **Apply**: `p.Stock = newStock;`  
+6) **Return** `true`.
+
+**Failure cases**
+1) Non‑admin → `false`.  
+2) Product not found → `false`.  
+3) Stock would be negative → `false`.
+
+---
+
+#### 7.3.2 ListAllOrders(userId) ⇒ List<Order>
+1) **Auth admin** via LINQ (as above).  
+2) **Return** `AppState.Orders.OrderByDescending(o => o.CreatedAt).ToList()`.
+
+**Failure cases**
+1) Non‑admin → return `new List<Order>()` (or handle at menu level).
+
+---
+
+#### 7.3.3 GenerateReport(userId, from, to) ⇒ string
+1) **Auth admin**.  
+2) **Filter (LINQ)**: `var range = AppState.Orders.Where(o => o.CreatedAt >= from && o.CreatedAt <= to);`  
+3) **By status**: `var byStatus = range.GroupBy(o => o.Status).Select(g => (g.Key, Count: g.Count(), Total: g.Sum(o => o.Total)));`  
+4) **Revenue**: `var revenue = range.Sum(o => o.Total);`  
+5) **Top products**:  
+   `var top = range.SelectMany(o => o.Items).GroupBy(i => i.ProductId).Select(g => (ProductId: g.Key, Qty: g.Sum(i => i.Quantity))).OrderByDescending(x => x.Qty).Take(5);`  
+6) **Format** as lines; **return** string.
+
+**Failure cases**
+1) Non‑admin → `"Forbidden"`.  
+2) `from > to` → `"Invalid date range"`.
+
+---
 
 ### 7.4 `Product`
-- **Create(userId, name, description, price, stock) ⇒ Product**  
-  Admin-only; validate; `ProductStore.Add(product)`.
-- **Update(userId, id, name, description, price, stock) ⇒ bool**  
-  Admin-only; validate; `ProductStore.Update(...)`.
-- **Delete(userId, id) ⇒ bool**  
-  Admin-only; `ProductStore.Remove(id)` (v1 allow even if referenced).
-- **FindById(id) ⇒ Product?**  
-  `ProductStore.Get(id)`.
-- **SearchByName(query) ⇒ List<Product>**  
-  Case-insensitive contains on `Name`.
+
+#### 7.4.1 Create(userId, name, description, price, stock) ⇒ Product
+1) **Auth admin**.  
+2) **Validate**: `!string.IsNullOrWhiteSpace(name)`, `price >= 0`, `stock >= 0`.  
+3) **Create**: new `Product { Id = Guid.NewGuid().ToString(), ... }`.  
+4) **Add (LINQ list op)**: `AppState.Products.Add(product)`.  
+5) **Return** product.
+
+**Failure cases**
+1) Non‑admin → `null`.  
+2) Invalid fields → `null`.
+
+---
+
+#### 7.4.2 Update(userId, id, name, description, price, stock) ⇒ bool
+1) **Auth admin**.  
+2) **Find (LINQ)**: `var p = AppState.Products.SingleOrDefault(x => x.Id == id);`  
+3) **Validate** fields.  
+4) **Apply** changes.  
+5) **Return** `true`.
+
+**Failure cases**
+1) Non‑admin → `false`.  
+2) Product not found → `false`.  
+3) Invalid fields → `false`.
+
+---
+
+#### 7.4.3 Delete(userId, id) ⇒ bool
+1) **Auth admin**.  
+2) **Find** product.  
+3) **Remove**: `AppState.Products.Remove(p)`.  
+4) **Return** `true`.
+
+**Failure cases**
+1) Non‑admin → `false`.  
+2) Not found → `false`.
+
+---
+
+#### 7.4.4 FindById(id) ⇒ Product?
+1) **LINQ**: `AppState.Products.SingleOrDefault(p => p.Id == id)`.  
+2) **Return** product or `null`.
+
+**Failure cases**
+1) None.
+
+---
+
+#### 7.4.5 SearchByName(query) ⇒ List<Product>
+1) **Normalize**: `q = query?.Trim();`  
+2) **If empty**: return **all** products ordered by name.  
+3) **Else**:  
+   `AppState.Products.Where(p => p.Name.Contains(q, StringComparison.OrdinalIgnoreCase)).OrderBy(p => p.Name).ToList();`
+
+**Failure cases**
+1) None.
+
+---
 
 ### 7.5 `Cart`
-- **AddItem(userId, productId, quantity) ⇒ bool**  
-  Validate quantity; ensure product exists and stock ≥ quantity; merge/add item; `CartStore.Save(cart)`.
-- **RemoveItem(userId, productId) ⇒ bool**  
-  Remove line by product id; save.
-- **Clear(userId) ⇒ void**  
-  `cart.Items.Clear()`; save.
-- **GetTotal(userId) ⇒ decimal**  
-  Sum of `UnitPrice * Quantity`.
+
+#### 7.5.1 AddItem(userId, productId, quantity) ⇒ bool
+1) **Validate**: `quantity > 0`.  
+2) **Cart (LINQ)**: `var cart = AppState.Carts.SingleOrDefault(c => c.CustomerId == userId) ?? create+add`.  
+3) **Product (LINQ)**: `var p = AppState.Products.SingleOrDefault(x => x.Id == productId)`.  
+4) **Existing line**: `var line = cart.Items.SingleOrDefault(i => i.ProductId == productId);`  
+5) **Desired qty**: `var newQty = (line?.Quantity ?? 0) + quantity;`  
+6) **Stock check**: `p.Stock >= newQty` (stock decremented on **order**, not here).  
+7) **Upsert**: create/update `CartItem` with `UnitPrice = p.Price`.  
+8) **Return** `true`.
+
+**Failure cases**
+1) `quantity <= 0` → `false`.  
+2) Product not found → `false`.  
+3) `newQty` exceeds current stock → `false`.
+
+---
+
+#### 7.5.2 RemoveItem(userId, productId) ⇒ bool
+1) **Cart**: find by `userId`.  
+2) **Line**: `SingleOrDefault` by `productId`.  
+3) **If found**: `cart.Items.Remove(line)`; **return** `true`.  
+4) **Else**: `false`.
+
+**Failure cases**
+1) Missing cart/line → `false`.
+
+---
+
+#### 7.5.3 Clear(userId) ⇒ void
+1) **Cart**: get by `userId`; if missing create then clear.  
+2) **Clear**: `cart.Items.Clear()`.
+
+**Failure cases**
+1) None.
+
+---
+
+#### 7.5.4 GetTotal(userId) ⇒ decimal
+1) **Cart**: get by `userId`.  
+2) **Sum (LINQ)**: `cart.Items.Sum(i => i.UnitPrice * i.Quantity)`.  
+3) **Return** total (0 if null/empty).
+
+**Failure cases**
+1) None.
+
+---
 
 ### 7.6 `CartItem`
-- **UpdateQuantity(userId, newQuantity) ⇒ bool**  
-  Validate `newQuantity > 0`; ensure product stock supports qty; update; save cart.
+
+#### 7.6.1 UpdateQuantity(userId, newQuantity) ⇒ bool
+1) **Validate**: `newQuantity > 0`.  
+2) **Cart**: get by `userId`.  
+3) **Line**: locate item.  
+4) **Product**: from `AppState.Products` by `line.ProductId`.  
+5) **Stock check**: `product.Stock >= newQuantity`.  
+6) **Apply**: `line.Quantity = newQuantity`.  
+7) **Return** `true`.
+
+**Failure cases**
+1) Line not found → `false`.  
+2) `newQuantity <= 0` → `false`.  
+3) Stock insufficient → `false`.
+
+---
 
 ### 7.7 `Order`
-- **PlaceFromCart(userId, cart) ⇒ Order**  
-  Ensure cart belongs to user; snapshot items with current prices; decrement product stock; `OrderStore.Add(order)`; status `Pending`.
-- **Cancel(userId, orderId) ⇒ bool**  
-  If order belongs to user and not shipped: set `Cancelled`; restock if needed; save.
-- **TrackStatus(userId, orderId) ⇒ OrderStatus**  
-  Return status if owner; else throw `InvalidOperationException` (or return a sentinel in v1).
-- **UpdateStatus(userId, orderId, status) ⇒ bool**  
-  Admin-only; enforce transitions; save.
+
+#### 7.7.1 PlaceFromCart(userId, cart) ⇒ Order
+1) **Ownership**: `cart.CustomerId == userId`.  
+2) **Non‑empty**: `cart.Items.Any()`.  
+3) **Re‑validate stock (LINQ)** for each line against `AppState.Products`.  
+4) **Snapshot** `OrderItem`s (copy `ProductName`, `UnitPrice`, `Quantity`).  
+5) **Decrement stock** on each corresponding product.  
+6) **Compute total**: `items.Sum(i => i.UnitPrice * i.Quantity)`.  
+7) **Create** order `{ Status = Pending, CreatedAt = DateProvider.UtcNow }`.  
+8) **Add** to `AppState.Orders`.  
+9) **Return** order.
+
+**Failure cases**
+1) Cart does not belong to user → throw `InvalidOperationException`.  
+2) Cart empty → return `null`.  
+3) Stock now insufficient → **fail** and do not create order.
+
+---
+
+#### 7.7.2 Cancel(userId, orderId) ⇒ bool
+1) **Find order**: `var o = AppState.Orders.SingleOrDefault(x => x.Id == orderId);`  
+2) **Ownership**: user must be owner (or admin via role check).  
+3) **Allowed**: `o.Status ∈ { Pending, Paid }` and **not Shipped**.  
+4) **Set** `o.Status = Cancelled`.  
+5) **Restock** products if not shipped.  
+6) **Return** `true`.
+
+**Failure cases**
+1) Not owner (and not admin) → `false`.  
+2) Status not cancellable → `false`.  
+3) Order not found → `false`.
+
+---
+
+#### 7.7.3 TrackStatus(userId, orderId) ⇒ OrderStatus
+1) **Find** order via LINQ.  
+2) **Ownership** check for customers.  
+3) **Return** `o.Status`.
+
+**Failure cases**
+1) Not owner (customer) → throw `InvalidOperationException`.  
+2) Order not found → throw `InvalidOperationException`.
+
+---
+
+#### 7.7.4 UpdateStatus(userId, orderId, status) ⇒ bool
+1) **Auth admin**.  
+2) **Find** order.  
+3) **Validate transition** against graph:  
+   `Pending → Paid → Packed → Shipped → Delivered` and `Pending/Paid → Cancelled`.  
+4) **Apply**; **return** `true`.
+
+**Failure cases**
+1) Not admin → `false`.  
+2) Invalid transition → `false`.  
+3) Order not found → `false`.
+
+---
 
 ### 7.8 `OrderItem`
-- **LineTotal() ⇒ decimal**  
-  `UnitPrice * Quantity`.
+
+#### 7.8.1 LineTotal() ⇒ decimal
+1) **Compute** `UnitPrice * Quantity`.  
+2) **Return** value.
+
+**Failure cases**
+1) None.
+
+---
 
 ### 7.9 `Payment`
-- **ChargeWallet(userId, orderId, amount) ⇒ Payment**  
-  If customer's wallet ≥ amount: deduct; payment `Captured`; order → `Paid`; save.
-  If not inform of lacking funds, ask if 'would you like to add funds' if yes send to wallet if no send to Customer menu with message.
-- **Refund(userId, paymentId) ⇒ bool**  
-  Admin-only; credit wallet; mark refunded.
+
+#### 7.9.1 ChargeWallet(userId, orderId, amount) ⇒ Payment
+1) **Find order** by id; ensure `order.CustomerId == userId`.  
+2) **Find customer** by id.  
+3) **Validate amount** `> 0`.  
+4) **Funds check**: if `customer.WalletBalance >= amount` →  
+   4.1) Deduct wallet (`customer.WalletBalance -= amount`).  
+   4.2) Create `Payment { Status = Captured }`; add to `order.Payments` (or global list if you keep one).  
+   4.3) Set `order.Status = Paid`.  
+   4.4) **Return** payment.  
+5) **Insufficient funds** →  
+   5.1) Create `Payment { Status = Failed }`;  
+   5.2) **Return** payment and **surface message** “Insufficient funds — add funds now?”.
+
+**Failure cases**
+1) Order not owned by user → `Payment(Status = Failed)` with error.  
+2) Amount ≤ 0 → `Payment(Status = Failed)`.  
+3) Missing order/user → `Payment(Status = Failed)`.
+
+> **Menu rule**: If `Failed` due to funds → prompt **Yes** (go to Wallet Deposit then retry) or **No** (back to Customer Menu).
+
+---
+
+#### 7.9.2 Refund(userId, paymentId) ⇒ bool
+1) **Auth admin**.  
+2) **Find payment** (LINQ) from orders’ payments.  
+3) **Must be Captured**.  
+4) **Credit wallet** by `payment.Amount`.  
+5) **Mark** `payment.Status = Refunded`.  
+6) **Optionally** mark order `Refunded`.  
+7) **Return** `true`.
+
+**Failure cases**
+1) Not admin → `false`.  
+2) Payment not found or not captured → `false`.
+
+---
 
 ### 7.10 `Review`
-- **Submit(userId, productId, rating, comment) ⇒ bool**  
-  Validate rating 1..5; `ReviewStore.Add(review)`.
-- **GetForProduct(productId) ⇒ List<Review>**  
-  `ReviewStore.GetByProduct(productId)`.
-- **AverageRating(productId) ⇒ double**  
-  Compute average; `0` if none.
+
+#### 7.10.1 Submit(userId, productId, rating, comment) ⇒ bool
+1) **Validate** `rating ∈ [1..5]`.  
+2) **(v2)** Ensure user purchased product (LINQ over orders).  
+3) **Create** review with timestamps.  
+4) **Add** to `AppState.Reviews`.  
+5) **Return** `true`.
+
+**Failure cases**
+1) Rating out of range → `false`.  
+2) (v2) Not purchased → `false`.
 
 ---
 
-## 8) Menus — Behavior & Routing (Local)
+#### 7.10.2 GetForProduct(productId) ⇒ List<Review>
+1) **LINQ**:  
+   `AppState.Reviews.Where(r => r.ProductId == productId).OrderByDescending(r => r.CreatedAt).ToList();`  
+2) **Return** list.
+
+**Failure cases**
+1) None.
+
+---
+
+#### 7.10.3 AverageRating(productId) ⇒ double
+1) **Project (LINQ)**: `var ratings = AppState.Reviews.Where(r => r.ProductId == productId).Select(r => r.Rating);`  
+2) **If none**: return `0`.  
+3) **Else**: `ratings.Average()`.
+
+**Failure cases**
+1) None.
+
+---
+
+## 8) Menus — Behavior & Routing (Local, LINQ-Only, Numbered)
 
 ### 8.1 `Menu` (abstract, `cmdDistrict.Models`)
-- Members: `Key`, `Title`, `ContextUserId?`
-- `Show(userId?)` sets context; prints title; `PrintOptions()`; read; `HandleSelection()`.
+1) **Set context**: `ContextUserId = userId`.  
+2) **Render** title.  
+3) **PrintOptions()**.  
+4) **Read** input.  
+5) **Dispatch**: `HandleSelection(input)`.  
+6) **If invalid**: show “Invalid selection” and remain.
 
-### 8.2 `MainMenu` (guest)
-- **Register** → `User.Sign` (role chosen: Customer or Admin) → `GlobalMenuHolder.SwitchToRole(userId)`.
-- **Login** → `User.Login` → on success route by role.
-- **Browse (Guest)** → read-only `Product.SearchByName` or list all.
-- **Exit** → terminate.
-
-### 8.3 `CustomerMenu` (needs `userId`)
-- Browse → list/search products.
-- Add to Cart → `Cart.AddItem(userId, productId, qty)`.
-- View Cart → list lines & total.
-- Checkout → `Order.PlaceFromCart(userId, cart)` then `Payment.ChargeWallet(userId, order.Id, order.Total)` → on success clear cart.
-- View Orders → `Customer.ViewOrders(userId)`.
-- Add Review → `Review.Submit(userId, ...)`.
-- Deposit Wallet → `Customer.Deposit(userId, amount)`.
-- Logout → `GlobalMenuHolder.Switch("main")`.
-
-### 8.4 `AdminMenu` (needs `userId`)
-- Manage Products → `Product.Create/Update/Delete`.
-- Adjust Inventory → `Administrator.AdjustInventory(userId, productId, delta)`.
-- Orders → `Administrator.ListAllOrders(userId)`.
-- Update Status → `Order.UpdateStatus(userId, orderId, status)`.
-- Report → `Administrator.GenerateReport(userId, from, to)`.
-- Logout → main.
-
-### 8.5 `GlobalMenuHolder`
-- Registers `MainMenu`, `CustomerMenu`, `AdminMenu`.
-- Holds `CurrentUserId`, `CurrentRole`.
-- `SwitchToRole(userId)` → resolves role via `User.GetRole(userId)` → switch to `admin` or `customer`.
-- `Run()` loops calling current menu `Show(CurrentUserId)`.
+**Failure cases**
+1) Invalid input → re‑prompt message, stay in same menu.
 
 ---
 
+### 8.2 `MainMenu` (guest)
+1) **Register**  
+   1.1) Prompt name/email/password/role.  
+   1.2) `User.Sign` (LINQ uniqueness check on `AppState.Users`).  
+   1.3) **Success** → `GlobalMenuHolder.SwitchToRole(userId)`.  
+   1.4) **Fail** → show reason; remain in Main.
+2) **Login**  
+   2.1) Prompt email/password.  
+   2.2) `User.Login` (LINQ lookup).  
+   2.3) **Success** → `SwitchToRole(userId)`.  
+   2.4) **Fail** → “Invalid credentials”; remain in Main.
+3) **Browse (Guest)**  
+   3.1) Optional search query.  
+   3.2) `Product.SearchByName` (LINQ contains).  
+   3.3) If none → “No products available”.
+4) **Exit** → terminate process.
+
+**Failure cases**
+1) Bad inputs → stay in Main.  
+2) Browse no results → friendly notice.
+
+---
+
+### 8.3 `CustomerMenu` (requires `userId`)
+1) **Browse Products**  
+   1.1) Search/list with LINQ.  
+   1.2) Show name, price, stock.
+2) **Add to Cart**  
+   2.1) Prompt product id & qty.  
+   2.2) `Cart.AddItem` using LINQ checks.  
+   2.3) On failure (not found/stock/qty) → show error.
+3) **View Cart**  
+   3.1) `Cart.GetTotal(userId)` (LINQ sum).  
+   3.2) Render lines & totals.
+4) **Checkout**  
+   4.1) `Order.PlaceFromCart` (re‑validates stock via LINQ).  
+   4.2) `Payment.ChargeWallet`.  
+   4.3) If **Captured** → clear cart; success message.  
+   4.4) If **Failed due to funds** → prompt:
+        - **Yes** → go **Deposit Wallet**, then retry.  
+        - **No** → return to menu with message.
+5) **View Orders**  
+   5.1) LINQ filter by user; show latest first.  
+6) **Add Review**  
+   6.1) Prompt productId, rating, comment.  
+   6.2) `Review.Submit` (LINQ validation).  
+7) **Deposit Wallet**  
+   7.1) Prompt amount.  
+   7.2) `Customer.Deposit`; validate > 0.  
+8) **Logout**  
+   8.1) `User.Logout()`; clear `CurrentUserId`; `Switch("main")`.
+
+**Failure cases**
+1) Invalid product/qty → add-to-cart fails.  
+2) Checkout insufficient funds → offer deposit flow.  
+3) Invalid rating → error.  
+4) Deposit amount <= 0 → error.
+
+---
+
+### 8.4 `AdminMenu` (requires `userId`)
+1) **Add Product**  
+   1.1) Prompt name/desc/price/stock.  
+   1.2) `Product.Create` (LINQ add).  
+2) **Update Product**  
+   2.1) Prompt id & new fields.  
+   2.2) `Product.Update` (LINQ find+apply).  
+3) **Delete Product**  
+   3.1) Prompt id.  
+   3.2) `Product.Delete` (LINQ remove).  
+4) **Adjust Inventory**  
+   4.1) Prompt id & delta.  
+   4.2) `Administrator.AdjustInventory` (LINQ validate & apply).  
+5) **View All Orders**  
+   5.1) `Administrator.ListAllOrders` (LINQ order desc).  
+6) **Update Order Status**  
+   6.1) Prompt order id & target status.  
+   6.2) `Order.UpdateStatus` (LINQ find + transition rules).  
+7) **Generate Report**  
+   7.1) Prompt date range.  
+   7.2) `Administrator.GenerateReport` (LINQ group/sum).  
+8) **Logout**  
+   8.1) `User.Logout()`; clear `CurrentUserId`; `Switch("main")`.
+
+**Failure cases**
+1) Non‑admin access (should be blocked by router).  
+2) Invalid fields / negative stock / invalid transition → show error.
+
+---
+
+### 8.5 `GlobalMenuHolder` (router)
+1) **Bootstrap**: register `MainMenu`, `CustomerMenu`, `AdminMenu`; set current = Main.  
+2) **SwitchToRole(userId)**:  
+   2.1) `CurrentUserId = userId`.  
+   2.2) `CurrentRole = User.GetRole(userId)` (LINQ lookup).  
+   2.3) If `"Administrator"` → `Switch("admin")`, else `Switch("customer")`.  
+3) **Run**: loop `current.Show(CurrentUserId)`.
+
+**Failure cases**
+1) Role lookup fails → show error; switch to Main.  
+2) Missing menu key (dev mistake) → diagnostic; switch to Main.
 ## 9) Build & Project Files (Reference)
 
 **`root/Program.cs`**
