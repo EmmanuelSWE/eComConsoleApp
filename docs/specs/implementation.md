@@ -88,7 +88,7 @@ dotnet run
 ```
 
 Runtime order:
-1. `Program.cs` → `GlobalMenuHolder.Bootstrap()`
+1. `Program.cs` → `GlobalMenuHolder.Start()`
 2. `GlobalMenuHolder.Run()` loops
 3. `MainMenu.Show()` for guest actions
 4. On success login/sign: `GlobalMenuHolder.SwitchToRole(userId)` → **Customer**/**Admin** menus.
@@ -119,13 +119,13 @@ Runtime order:
 
 ## 6) InMemory Stores (No DB)
 
-> Each store exposes minimal CRUD helpers. Use **static** collections for simplicity.
+> Each store exposes minimal CRUD helpers. Use **static** methods.
 
 - **UserStore**: users by `Email` + by `Id`.
-- **ProductStore**: list of products; find by id/name.
+- **ProductStore**: list of products; find by name.
 - **CartStore**: carts by `CustomerId`.
-- **OrderStore**: orders list; by customer; by id.
-- **ReviewStore**: reviews list; by product.
+- **OrderStore**: orders list; by customer.
+- **ReviewStore**: reviews list; by product id.
 
 **Rules:**
 - Only entity methods touch stores (Menus call entities, not stores directly) to keep flow clean.
@@ -142,7 +142,7 @@ Runtime order:
 **Attributes**: `id : string`, `Name`, `Email`, `Password`, `Role`
 
 #### 7.1.1 Login(email, password) ⇒ (bool success, string userId, string role)
-1) **Normalize**: `email = email?.Trim()`; `password = password ?? ""`.  
+1) **Normalize**: `email = email?`; `password = password ?? ""`.  
 2) **Find user (LINQ)**:  
    `var user = AppState.Users.SingleOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));`  
 3) **Compare**: if `user != null && user.Password == password` → **return** `(true, user.Id, user.Role)`.  

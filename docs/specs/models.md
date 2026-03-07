@@ -18,8 +18,8 @@
 - Role : string  _(values: "Customer" | "Administrator")_
 
 **Actions**
-- public static Login : string email, string password ⇒ (bool success, string userId, string role)
-- public static Sign : string name, string email, string password, string role ⇒ (bool success, string userId)
+- public static Login : string email, string password ⇒ bool
+- public static Sign : string name, string email, string password, string role ⇒ bool 
 - public Logout : User ⇒ bool
 - public static GetRole : string userId ⇒ string
 
@@ -38,6 +38,7 @@
 - Deposit : string userId, decimal amount ⇒ bool
 - ViewOrders : string userId ⇒ List<Order>
 - ViewCart : string userId ⇒ Cart
+-set Address : string address => void
 
 ---
 
@@ -70,10 +71,10 @@
 
 **Actions**
 - Create : string userId, string name, string description, decimal price, int stock ⇒ Product
-- Update : string userId, string id, string name, string description, decimal price, int stock ⇒ bool
-- Delete : string userId, string id ⇒ bool
-- FindById : string id ⇒ Product?
-- SearchByName : string query ⇒ List<Product>
+- static Update : string userId, string id, string name, string description, decimal price, int stock ⇒ bool
+- static Delete : string userId, string id ⇒ bool
+- static FindById : string id ⇒ Product?
+- static SearchByName : string query ⇒ List<Product>
 
 ---
 
@@ -86,6 +87,7 @@
 - id : string
 - CustomerId : string
 - Items : List<CartItem>
+- PrevPurchase : List<List<CartItem>>
 
 **Actions**
 - AddItem : string userId, string productId, int quantity ⇒ bool
@@ -109,6 +111,7 @@
 
 **Actions**
 - UpdateQuantity : string userId, int newQuantity ⇒ bool
+
 
 ---
 
@@ -163,7 +166,6 @@
 
 **Actions**
 - ChargeWallet : string userId, string orderId, decimal amount ⇒ Payment
-- Refund : string userId, string paymentId ⇒ bool
 
 ---
 
@@ -181,8 +183,8 @@
 
 **Actions**
 - Submit : string userId, string productId, int rating, string comment ⇒ bool
-- GetForProduct : string productId ⇒ List<Review>
-- AverageRating : string productId ⇒ double
+- static GetForProduct : string productId ⇒ List<Review>
+- static AverageRating : string productId ⇒ double
 
 ---
 
@@ -202,7 +204,7 @@
 - Show : string? userId ⇒ void  
   _(Sets ContextUserId internally; shows options for that user context)_
 - PrintOptions : void ⇒ void
-- HandleSelection : string selection ⇒ bool
+- getInput : stringInput => void
 
 ---
 
@@ -227,14 +229,15 @@
 - Requires **ContextUserId** (the logged-in customer’s id)
 
 **Functionality**
-- Browse Products
-- Add Product to Cart (uses ContextUserId)
-- View Cart (uses ContextUserId)
-- Checkout (creates Order + Payment with ContextUserId)
-- View Orders (ContextUserId)
-- Add Review (ContextUserId)
-- Deposit Wallet Funds (ContextUserId)
-- Logout (clears ContextUserId and routes to Main)
+- Browse Products => void
+- Add Product to Cart (uses ContextUserId) => void
+- View Cart (uses ContextUserId) => void
+- Checkout (creates Order + Payment with ContextUserId) => void
+- View Wallet (ContextUserId) => void
+- View Orders (ContextUserId) => void
+- Add Review (ContextUserId) => void
+- Deposit Wallet Funds (ContextUserId) => void
+- Logout (clears ContextUserId and routes to Main) => void
 
 ---
 
@@ -245,14 +248,16 @@
 - Requires **ContextUserId** (the logged-in admin’s id)
 
 **Functionality**
-- Add Product (ContextUserId)
-- Update Product (ContextUserId)
-- Delete Product (ContextUserId)
-- Adjust Inventory (ContextUserId)
-- View All Orders (ContextUserId)
-- Update Order Status (ContextUserId)
-- Generate Report (ContextUserId)
-- Logout (clears ContextUserId and routes to Main)
+- Add Product (ContextUserId) => void
+- Update Product (ContextUserId) => void
+- Delete Product (ContextUserId) => void
+- Adjust Inventory (ContextUserId) => void
+- View All Products (ContextUserId) => void
+- View All Orders (ContextUserId) => void
+- View Low Stock products (ContextUserId) => void
+- Update Order Status (ContextUserId) => void
+- Generate Report (ContextUserId) => void
+- Logout (clears ContextUserId and routes to Main) => void
 
 ---
 
@@ -277,5 +282,5 @@
 - SwitchToRole : string userId ⇒ void  
   _(Sets CurrentUserId, resolves role via `User.GetRole(userId)`, sets CurrentRole, then Switches to `"customer"` or `"admin"` accordingly)_
 - Run : void ⇒ void
-- Bootstrap : void ⇒ void  
+- Start : void ⇒ void  
   _(Registers Main, Customer, Admin menus; sets starting menu to Main with `CurrentUserId = null`)_
