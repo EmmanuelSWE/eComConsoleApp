@@ -129,6 +129,7 @@ Runtime order:
 
 **Rules:**
 - Only entity methods touch stores (Menus call entities, not stores directly) to keep flow clean.
+- all private fields of a class must have getters and setters.
 
 ---
 
@@ -140,40 +141,52 @@ Runtime order:
 ### 7.1 `User` (abstract, `cmdDistrict.Models.Entities`)
 
 **Attributes**: `id : string`, `Name`, `Email`, `Password`, `Role`
+**Construcctor**: takes `Name`, `Email`, `Password`, `Role` all strings
 
 #### 7.1.1 Login(email, password) ⇒ (bool success, string userId, string role)
-1) **Normalize**: `email = email?`; `password = password ?? ""`.  
-2) **Find user (LINQ)**:  
-   `var user = AppState.Users.SingleOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));`  
-3) **Compare**: if `user != null && user.Password == password` → **return** `(true, user.Id, user.Role)`.  
-4) **Else** **return** `(false, "", "")`.
+1. user inputs login
+2. Prompted for email : inputs
+3. Prompted for password : inputs 
+
+4. validation check if email  and password input ( must not be empty)
+5. Linq query : use Helper find UserBy Email using email. 
+6. return find UserBy.
+
 
 **Failure cases**
-1) Empty email/password → `(false, "", "")`.  
-2) No user with email → `(false, "", "")`.  
-3) Password mismatch → `(false, "", "")`.
-
+5a. inputs failed check :
+    1. send message ask user to reprompt. 
+6a. Helper returns false : 
+    1. notify user of email or password may be invalid.
+    2. reprompt.
 ---
 
-#### 7.1.2 Sign(name, email, password, role) ⇒ (bool success, string userId)
-> **Id rule:** `id = $"{DateProvider.UtcNow:yyyyMMddHHmmss}-{Random(6 digits)}"` (date + random).
-1) **Normalize & validate**: non‑empty `name/email/password`, `password.Length ≥ 6`, `role ∈ {"Customer","Administrator"}`.  
-2) **Uniqueness (LINQ)**:  
-   `if (AppState.Users.Any(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase))) return (false, "");`  
-3) **Generate id**: date+random string.  
-4) **Construct** user instance.  
-5) **Add (LINQ list op)**: `AppState.Users.Add(user)`.  
-6) **Return** `(true, user.Id)`.
+#### 7.1.2 Signin(name, email, password, role) ⇒ (bool success, string userId)
+1. user inputs signin
+2. Prompted for name : inputs
+3. Prompted for email : inputs
+4. Prompted for password : inputs 
+
+5. validation check if email name and password input (add must not be empty)
+6. Linq query : use Helper find UserBy Email using email. 
+7. create user instance (email, name, password (hashed)).
+8. save user instance to table.
+9. return true.
+
 
 **Failure cases**
-1) Invalid inputs/role → `(false, "")`.  
-2) Email already exists → `(false, "")`.
+5a. inputs failed check :
+    1. send message ask user to reprompt. 
+6a. Helper returns true : 
+    1. notify user of email being part of system already.
+    2. reprompt.
+
 
 ---
 
 #### 7.1.3 Logout() ⇒ bool
-1) **Signal UI** to clear `GlobalMenuHolder.CurrentUserId`.  
-2) **Return** `true`.
+1. set CurrentUser id in GlobalMenu instance to null
+2. return true.
 
 **Failure cases**
 1) None (local no‑op).
@@ -181,12 +194,10 @@ Runtime order:
 ---
 
 #### 7.1.4 GetRole(userId) ⇒ string
-1) **Lookup (LINQ)**:  
-   `var user = AppState.Users.SingleOrDefault(u => u.Id == userId);`  
-2) **Return** `user.Role`.
+1. return role use getters and setters
 
 **Failure cases**
-1) `user == null` → throw `InvalidOperationException("User not found")`.
+2. none.
 
 ---
 
