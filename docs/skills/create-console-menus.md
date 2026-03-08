@@ -12,6 +12,7 @@ When you need the **console UI** or new menu pages/actions.
 - All Customer/Admin actions must pass `ContextUserId`
 - Friendly prompts; re-prompt on invalid input
 
+
 ## Files to create
 ```
 src/CmdDistrict/Models/Menu/Menu.cs
