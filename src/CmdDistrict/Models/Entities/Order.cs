@@ -1,4 +1,5 @@
 using cmdDistrict.Common;
+using cmdDistrict.Infrastructure.StoresEf;
 
 namespace cmdDistrict.Models.Entities;
 
@@ -32,82 +33,17 @@ public class Order
 
     /// <summary>Snapshots the customer's cart into a new Order and clears the cart.</summary>
     public static Order? PlaceFromCart(string userId, Cart cart)
-    {
-        try
-        {
-            if (cart.CustomerId != userId) return null;
-            if (!cart.Items.Any()) return null;
-
-            var order = new Order(userId);
-            foreach (var ci in cart.Items)
-                order.Items.Add(new OrderItem(ci.ProductId, ci.ProductName, ci.UnitPrice, ci.Quantity));
-            order.Total = order.Items.Sum(i => i.LineTotal);
-
-            AppState.Orders.Add(order);
-            Cart.Clear(userId);   // restores stock already done — Cart.Clear handles it
-            return order;
-        }
-        catch { return null; }
-    }
+        => OrderStoreEf.PlaceFromCart(userId, cart);
 
     /// <summary>Cancels a Pending or Paid order, restoring product stock.</summary>
     public static bool Cancel(string userId, string orderId)
-    {
-        try
-        {
-            var order = AppState.Orders.SingleOrDefault(o => o.Id == orderId);
-            if (order is null || order.CustomerId != userId) return false;
-            if (order.Status != OrderStatus.Pending && order.Status != OrderStatus.Paid) return false;
-
-            foreach (var item in order.Items)
-            {
-                var product = AppState.Products.SingleOrDefault(p => p.Id == item.ProductId);
-                if (product is not null) product.Stock += item.Quantity;
-            }
-            order.Status = OrderStatus.Cancelled;
-            return true;
-        }
-        catch { return false; }
-    }
+        => OrderStoreEf.Cancel(userId, orderId);
 
     /// <summary>Returns the status of an order. Throws if not found or user is not the owner.</summary>
     public static OrderStatus TrackStatus(string userId, string orderId)
-    {
-        var order = AppState.Orders.SingleOrDefault(o => o.Id == orderId)
-            ?? throw new InvalidOperationException($"Order '{orderId}' not found.");
-        if (order.CustomerId != userId)
-            throw new InvalidOperationException("Access denied: order belongs to a different customer.");
-        return order.Status;
-    }
+        => OrderStoreEf.TrackStatus(userId, orderId);
 
     /// <summary>Advances or sets an order's status following the allowed state machine (admin or owner).</summary>
     public static bool UpdateStatus(string userId, string orderId, OrderStatus newStatus)
-    {
-        try
-        {
-            var order = AppState.Orders.SingleOrDefault(o => o.Id == orderId);
-            if (order is null) return false;
-
-            bool isAdmin = AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator");
-            bool isOwner = order.CustomerId == userId;
-            if (!isAdmin && !isOwner) return false;
-
-            // Allowed forward transitions
-            bool allowed = (order.Status, newStatus) switch
-            {
-                (OrderStatus.Pending,   OrderStatus.Paid)      => true,
-                (OrderStatus.Paid,      OrderStatus.Packed)    => isAdmin,
-                (OrderStatus.Packed,    OrderStatus.Shipped)   => isAdmin,
-                (OrderStatus.Shipped,   OrderStatus.Delivered) => isAdmin,
-                (OrderStatus.Pending,   OrderStatus.Cancelled) => true,
-                (OrderStatus.Paid,      OrderStatus.Cancelled) => isAdmin,
-                _ => false
-            };
-            if (!allowed) return false;
-
-            order.Status = newStatus;
-            return true;
-        }
-        catch { return false; }
-    }
+        => OrderStoreEf.UpdateStatus(userId, orderId, newStatus);
 }
