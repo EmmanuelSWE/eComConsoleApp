@@ -1,8 +1,8 @@
-# Cmd District — Implementation (SQL Server via ADO.NET, No Services)
+# Cmd District — Implementation (EF Core + SQL Server, No Services)
 
 > **Scope**  
-> Single-file implementation guide for the **Cmd District** .NET console app with **SQL Server (Docker) via ADO.NET, no Services/ORMs**.  
-> **Entities call Stores.Sql; Menus call Entities; no Services/ORMs.**  
+> Single-file implementation guide for the **Cmd District** .NET console app with **EF Core + SQL Server (Docker), no Services layer**.  
+> **Entities call Stores.Ef; Menus call Entities; no Services layer.**  
 > Copy this file as-is into `docs/implementation.md`.
 
 ---
@@ -13,8 +13,8 @@
 - **C# 12**
 - **Console UI** (synchronous I/O)
 - **SQL Server (Docker)**
-- **ADO.NET** (`Microsoft.Data.SqlClient`)
-- **No Services/ORM layer**
+- **EF Core** (`Microsoft.EntityFrameworkCore.SqlServer`)
+- **No Services layer**
 
 ---
 
@@ -39,7 +39,7 @@
       │  └─ Session.cs                  # Login session state (CurrentUserId, CurrentRole)
       │
       ├─ DataAccess/
-      │  └─ Db.cs                       # SqlConnection factory & helpers
+      │  └─ AppDbContext.cs             # EF Core DbContext; UseSqlServer
       │
       ├─ Models/
       │  ├─ Entities/
@@ -63,25 +63,25 @@
       │     └─ GlobalMenuHolder.cs      # Registry + Router (tracks CurrentUserId/Role)
       │
       └─ Infrastructure/
-         └─ Stores.Sql/                 # ← SQL Server stores (ADO.NET)
-            ├─ UserStore.cs
-            ├─ ProductStore.cs
-            ├─ CartStore.cs
-            ├─ OrderStore.cs
-            └─ ReviewStore.cs
+         └─ Stores.Ef/                  # ← EF Core stores (LINQ to Entities)
+            ├─ UserStoreEf.cs
+            ├─ ProductStoreEf.cs
+            ├─ CartStoreEf.cs
+            ├─ OrderStoreEf.cs
+            └─ ReviewStoreEf.cs
 ```
 
-> **Removed**: `Infrastructure/Services/*` entirely. `Infrastructure/InMemory/` replaced by `Infrastructure/Stores.Sql/`.
+> **Removed**: `Infrastructure/Services/*` entirely. `Infrastructure/InMemory/` replaced by `Infrastructure/Stores.Ef/`.
 
 ---
 
 ## 3) Key Decisions (Local-Only)
 
-- **No Services/ORM layer**: Menus call **Entities** directly, and entities/read-write go through **Stores.Sql**.
+- **No Services layer**: Menus call **Entities** directly, and entities/read-write go through **Stores.Ef** via LINQ to Entities.
 - **Role-aware routing** remains: after login/register, `Session.CurrentUserId` + `Session.CurrentRole` are set internally by the Store and route to Customer/Admin menu.
 - **Validation** centralized via `Guard`. Menus handle user input errors (re-prompt); entities enforce business rules.
 - **Result pattern** optional. For simplicity, entity methods can return `bool` or throw for programming errors.
-- **Persistence**: data persists in SQL Server (Docker). Connection via `Db.cs` (ADO.NET, `Microsoft.Data.SqlClient`).
+- **Persistence**: data persists in SQL Server (Docker). EF Core `AppDbContext` (`UseSqlServer`) handles connection and LINQ-to-SQL translation.
 
 ---
 
@@ -122,20 +122,20 @@ Runtime order:
 - private fields with prefix of _ 
 ---
 
-## 6) SQL Stores via ADO.NET
+## 6) EF Core Stores (Stores.Ef)
 
-> Each store exposes minimal CRUD helpers via **ADO.NET** (`Microsoft.Data.SqlClient`). Use **static** methods backed by `Db.cs`.
+> Each store exposes minimal CRUD helpers via **EF Core** (`Microsoft.EntityFrameworkCore.SqlServer`). Use **static** methods backed by `AppDbContext`.
 
-- **UserStore**: users by `Email` + by `Id`; `Login` and `Sign` set `Session.CurrentUserId` + `Session.CurrentRole` internally and return `bool`.
-- **ProductStore**: products table; find by name.
-- **CartStore**: carts by `CustomerId`.
-- **OrderStore**: orders table; by customer.
-- **ReviewStore**: reviews table; by product id.
+- **UserStoreEf**: users by `Email` + by `Id`; `Login` and `Sign` set `Session.CurrentUserId` + `Session.CurrentRole` internally and return `bool`.
+- **ProductStoreEf**: products table; find by name.
+- **CartStoreEf**: carts by `CustomerId`.
+- **OrderStoreEf**: orders table; by customer.
+- **ReviewStoreEf**: reviews table; by product id.
 
 **Rules:**
 - Only entity methods touch stores (Menus call entities, not stores directly) to keep flow clean.
 - all private fields of a class must have getters and setters.
-- all SQL queries are surrounded by a try catch block.
+- all EF Core queries are surrounded by a try catch block.
 - when mapping entity items in a list rather have it display the index + 1 of it first then product content . when searching first filter by looking for userInput -1 as index in list : 
 **validate** -> `if searchIndex < list.length`
 **found** -> use entity Id for linq query
@@ -143,7 +143,7 @@ Runtime order:
 
 ---
 
-## 7) Model Actions — Implementation Descriptions (Local, LINQ-Only, Numbered)
+## 7) Model Actions — Implementation Descriptions (EF Core + SQL Server, Numbered)
 
 > All actions operate on **SQL Server tables** via **Stores.Sql** (no services, no ORMs).  
 > Use `DateProvider.UtcNow` for timestamps where needed.
@@ -159,7 +159,7 @@ Runtime order:
 3. Prompted for password : inputs 
 
 4. validation check if email  and password input ( must not be empty)
-5. Store query : use UserStore to find user by email. 
+5. Store query : use UserStoreEf to find user by email. 
 6. Store returns `bool`; on success, sets `Session.CurrentUserId` and `Session.CurrentRole` internally.
 
 
@@ -178,7 +178,7 @@ Runtime order:
 4. Prompted for password : inputs 
 
 5. validation check if email name and password input (add must not be empty)
-6. Store query : use UserStore to check email uniqueness. 
+6. Store query : use UserStoreEf to check email uniqueness. 
 7. create user instance (email, name, password (hashed)) and wallet instance for user.
 8. save user instance and wallet via Store (SQL INSERT).
 9. Store returns `bool`; on success, sets `Session.CurrentUserId` and `Session.CurrentRole` internally.
@@ -237,8 +237,8 @@ Runtime order:
 ---
 
 #### 7.2.3 ViewCart(userId) ⇒ Cart
-1) **Find (Store)**:  
-   `var cart = CartStore.GetByCustomerId(userId);`  
+1) **Find (StoreEf)**:  
+   `var cart = CartStoreEf.GetByCustomerId(userId);`  
 2) **Create if missing**: new `Cart { CustomerId = userId }` 
 3) **Return** cart.
 
@@ -251,9 +251,9 @@ Runtime order:
 
 #### 7.3.1 AdjustInventory(userId, productId) ⇒ bool
 1) **Auth**:  
-   `UserStore.IsAdmin(userId)`.  
-2) **Find product (Store)**:  
-   get product using search by name or product id via ProductStore.
+   `UserStoreEf.IsAdmin(userId)`.  
+2) **Find product (StoreEf)**:  
+   get product using search by name or product id via ProductStoreEf.
 3) **Compute**: `var newStock = p.Stock ;`  
 4) **Validate**: `newStock >= 0`.  
 5) **Apply**: `p.Stock = newStock;`  
@@ -267,7 +267,7 @@ Runtime order:
 ---
 
 #### 7.3.2 ListAllOrders(userId) ⇒ List<Order>
-1) **Auth admin** via Store (as above).  
+1) **Auth admin** via StoreEf (as above).  
 2) **Return** `List of orders
 
 **Failure cases**
@@ -293,7 +293,7 @@ Runtime order:
 1) **Auth admin**.  
 2) **Validate**: `!string.IsNullOrWhiteSpace(name)`, `price >= 0`, `stock >= 0`.  
 3) **Create**: new `Product { Id = Guid.NewGuid().ToString(), ... }`.  
-4) **Add (Store INSERT)**: save product to products table via ProductStore.
+4) **Add (StoreEf)**: save product to products table via ProductStoreEf.
 5) **Return** product.
 
 **Failure cases**
@@ -304,7 +304,7 @@ Runtime order:
 
 #### 7.4.2 Update(userId, id, name, description, price, stock) ⇒ bool
 1) **Auth admin**.  
-2) **Find (Store)**: find from products table via ProductStore. 
+2) **Find (StoreEf)**: find from products table via ProductStoreEf. 
 3) **Validate** fields.  
 4) **Apply** changes.  
 5) **Return** `true`.
@@ -319,7 +319,7 @@ Runtime order:
 #### 7.4.3 Delete(userId, id) ⇒ bool
 1) **Auth admin**.  
 2) **Find** product.  
-3) **Remove (Store DELETE)**: remove using id as WHERE parameter from products table. 
+3) **Remove (StoreEf)**: remove using id via ProductStoreEf. 
 4) **Return** `true`.
 
 **Failure cases**
@@ -329,7 +329,7 @@ Runtime order:
 ---
 
 #### 7.4.4 FindById(id) ⇒ Product?
-1) **Store query**: find by id as param via ProductStore.
+1) **StoreEf query**: find by id as param via ProductStoreEf.
 2) **Return** product or `null`.
 
 **Failure cases**
@@ -339,9 +339,9 @@ Runtime order:
 
 #### 7.4.5 SearchByName(query) ⇒ List<Product>
 1) **Normalize**: `q = query?.Trim();`  
-2) **If empty**: return **all** products ordered by name via Store.  
+2) **If empty**: return **all** products ordered by name via StoreEf.  
 3) **Else**:  
-    return products where name like `'%{phrase}%'` via Store SQL query.
+    return products where name contains phrase via StoreEf (EF Core `Contains()`).
 
 **Failure cases**
 1) None.
@@ -352,8 +352,8 @@ Runtime order:
 
 #### 7.5.1 AddItem(userId, productId, quantity) ⇒ bool
 1) **Validate**: `quantity > 0`.  
-2) **Cart (Store)**: get cart of user from carts table via CartStore, param: userId.
-3) **Product (Store)**: get product from products table via ProductStore.
+2) **Cart (StoreEf)**: get cart of user from carts table via CartStoreEf, param: userId.
+3) **Product (StoreEf)**: get product from products table via ProductStoreEf.
 5) **Desired qty**: if p.stock >= quantity 
 6) **Stock check**: decrement stock of product record. 
 7. add stock item to users cart.  
@@ -368,9 +368,9 @@ Runtime order:
 ---
 
 #### 7.5.2 RemoveItem(userId, productId) ⇒ bool
-1) **Cart** Store: find by `userId` via CartStore.  
-2) **Line**: find by `productId` and cartId in cartItems table via Store.  
-3) **If found**: remove from cartItems table via Store DELETE; **return** `true`.  
+1) **Cart** StoreEf: find by `userId` via CartStoreEf.  
+2) **Line**: find by `productId` and cartId in cartItems table via StoreEf.  
+3) **If found**: remove from cartItems table via StoreEf; **return** `true`.  
 4) **Else**: `false`.
 
 **Failure cases**
@@ -380,10 +380,10 @@ Runtime order:
 
 #### 7.5.3 Clear(userId) ⇒ void
 1) **Cart**: get by `userId`; if missing create then clear.
-2. Store query : find all cartItems by cartId.  
-3. foreach cartItem found: delete via Store DELETE.
-4. commit
-5. remove from cart via Store DELETE.
+2. StoreEf query : find all cartItems by cartId.  
+3. foreach cartItem found: remove via StoreEf.
+4. SaveChanges
+5. remove from cart via StoreEf.
 5. print dynamic message of cartItems being deleted
 
 
@@ -394,7 +394,7 @@ Runtime order:
 
 #### 7.5.4 GetTotal(userId) ⇒ decimal
 1) **Cart**: get by `userId`.  
-2) **Sum (Store)**: `CartStore.GetTotal(userId)` (SQL `SUM(UnitPrice * Quantity)`).  
+2) **Sum (StoreEf)**: `CartStoreEf.GetTotal(userId)` (EF Core `Sum(i => i.UnitPrice * i.Quantity)`).  
 3) **Return** total (0 if null/empty).
 
 **Failure cases**
@@ -408,7 +408,7 @@ Runtime order:
 1) **Validate**: `newQuantity > 0`.  
 2) **Cart**: get by `userId`.  
 3) **Line**: locate item.  
-4) **Product**: from `ProductStore` by `line.ProductId`.  
+4) **Product**: from `ProductStoreEf` by `line.ProductId`.  
 5) **Stock check**: `product.Stock >= newQuantity`.  
 6) **Apply**: `line.Quantity = newQuantity`.  
 7) **Return** `true`.
@@ -425,12 +425,12 @@ Runtime order:
 #### 7.7.1 PlaceFromCart(userId, cart) ⇒ Order
 1) **Ownership**: `cart.CustomerId == userId`.  
 2) **Non‑empty**: `cart.Items.Any()`.  
-3) **Re‑validate stock (Store)** for each line against `ProductStore`.  
+3) **Re‑validate stock (StoreEf)** for each line against `ProductStoreEf`.  
 4) **Snapshot** `OrderItem`s (copy `ProductName`, `UnitPrice`, `Quantity`).  
 5) **Decrement stock** on each corresponding product.  
 6) **Compute total**: `items.Sum(i => i.UnitPrice * i.Quantity)`.  
 7) **Create** order `{ Status = Pending, CreatedAt = DateProvider.UtcNow }`.  
-8) **Add** to orders table via Store INSERT.  
+8) **Add** to orders table via StoreEf.  
 9) **Return** order.
 
 **Failure cases**
@@ -441,7 +441,7 @@ Runtime order:
 ---
 
 #### 7.7.2 Cancel(userId, orderId) ⇒ bool
-1) **Find order**: `var o = OrderStore.GetById(orderId);`  
+1) **Find order**: `var o = OrderStoreEf.GetById(orderId);`  
 2) **Ownership**: user must be owner (or admin via role check).  
 3) **Allowed**: `o.Status ∈ { Pending, Paid }` and **not Shipped**.  
 4) **Set** `o.Status = Cancelled`.  
@@ -517,7 +517,7 @@ Runtime order:
 
 #### 7.9.2 Refund(userId, paymentId) ⇒ bool
 1) **Auth admin**.  
-2) **Find payment** (Store query) from payments table.  
+2) **Find payment** (StoreEf query) from payments table.  
 3) **Must be Captured**.  
 4) **Credit wallet** by `payment.Amount`.  
 5) **Mark** `payment.Status = Refunded`.  
@@ -536,7 +536,7 @@ Runtime order:
 1) **Validate** `rating ∈ [1..5]`.  
 2) **(v2)** Ensure user purchased product (LINQ over orders).  
 3) **Create** review with timestamps.  
-4) **Add** to reviews table via Store INSERT.  
+4) **Add** to reviews table via StoreEf.  
 5) **Return** `true`.
 
 **Failure cases**
@@ -546,8 +546,8 @@ Runtime order:
 ---
 
 #### 7.10.2 GetForProduct(productId) ⇒ List<Review>
-1) **Store query**:  
-   `ReviewStore.GetByProductId(productId)` ordered by `CreatedAt` desc.  
+1) **StoreEf query**:  
+   `ReviewStoreEf.GetByProductId(productId)` ordered by `CreatedAt` desc.  
 2) **Return** list.
 
 **Failure cases**
@@ -556,7 +556,7 @@ Runtime order:
 ---
 
 #### 7.10.3 AverageRating(productId) ⇒ double
-1) **Store query**: `ReviewStore.GetAverageRating(productId)` (SQL `AVG(Rating)`).  
+1) **StoreEf query**: `ReviewStoreEf.GetAverageRating(productId)` (EF Core `Average()`).  
 2) **If none**: return `0`.  
 3) **Else**: return computed average.
 
@@ -583,17 +583,17 @@ Runtime order:
 ### 8.2 `MainMenu` (guest)
 1) **Register**  
    1.1) Prompt name/email/password/role.  
-   1.2) `User.Sign` (uniqueness check via UserStore).  
+   1.2) `User.Sign` (uniqueness check via UserStoreEf).  
    1.3) **Success** → `GlobalMenuHolder.SwitchToRole(userId)`.  
    1.4) **Fail** → show reason; remain in Main.
 2) **Login**  
    2.1) Prompt email/password.  
-   2.2) `User.Login` (lookup via UserStore; sets Session on success).  
+   2.2) `User.Login` (lookup via UserStoreEf; sets Session on success).  
    2.3) **Success** → `SwitchToRole(userId)`.  
    2.4) **Fail** → “Invalid credentials”; remain in Main.
 3) **Browse (Guest)**  
    3.1) Optional search query.  
-   3.2) `Product.SearchByName` (SQL LIKE contains via ProductStore).  
+   3.2) `Product.SearchByName` (EF Core Contains() via ProductStoreEf).  
    3.3) If none → “No products available”.
 4) **Exit** → terminate process.
 
@@ -609,23 +609,23 @@ Runtime order:
    1.2) Show name, price, stock.
 2) **Add to Cart**  
    2.1) Prompt product id & qty.  
-   2.2) `Cart.AddItem` using Store checks.  
+   2.2) `Cart.AddItem` using StoreEf checks.  
    2.3) On failure (not found/stock/qty) → show error.
 3) **View Cart**  
-   3.1) `Cart.GetTotal(userId)` (SQL sum via Store).  
+   3.1) `Cart.GetTotal(userId)` (EF Core Sum() via StoreEf).  
    3.2) Render lines & totals.
 4) **Checkout**  
-   4.1) `Order.PlaceFromCart` (re‑validates stock via Store).  
+   4.1) `Order.PlaceFromCart` (re‑validates stock via StoreEf).  
    4.2) `Payment.ChargeWallet`.  
    4.3) If **Captured** → clear cart; success message.  
    4.4) If **Failed due to funds** → prompt:
         - **Yes** → go **Deposit Wallet**, then retry.  
         - **No** → return to menu with message.
 5) **View Orders**  
-   5.1) SQL filter by user via entity method; show latest first.  
+   5.1) EF Core filter by user via entity method; show latest first.  
 6) **Add Review**  
    6.1) Prompt productId, rating, comment.  
-   6.2) `Review.Submit` (Store validation).  
+   6.2) `Review.Submit` (StoreEf validation).  
 7) **Deposit Wallet**  
    7.1) Prompt amount.  
    7.2) `Customer.Deposit`; validate > 0.  
@@ -643,24 +643,24 @@ Runtime order:
 ### 8.4 `AdminMenu` (requires `userId`)
 1) **Add Product**  
    1.1) Prompt name/desc/price/stock.  
-   1.2) `Product.Create` (Store INSERT).  
+   1.2) `Product.Create` (StoreEf Add/SaveChanges).  
 2) **Update Product**  
    2.1) Prompt id & new fields.  
-   2.2) `Product.Update` (Store find+apply).  
+   2.2) `Product.Update` (StoreEf find+apply).  
 3) **Delete Product**  
    3.1) Prompt id.  
-   3.2) `Product.Delete` (Store DELETE).  
+   3.2) `Product.Delete` (StoreEf Remove/SaveChanges).  
 4) **Adjust Inventory**  
    4.1) Prompt id & delta.  
-   4.2) `Administrator.AdjustInventory` (Store validate & apply).  
+   4.2) `Administrator.AdjustInventory` (StoreEf validate & apply).  
 5) **View All Orders**  
-   5.1) `Administrator.ListAllOrders` (SQL ORDER BY desc via Store).  
+   5.1) `Administrator.ListAllOrders` (EF Core OrderByDescending() via StoreEf).  
 6) **Update Order Status**  
    6.1) Prompt order id & target status.  
-   6.2) `Order.UpdateStatus` (Store find + transition rules).  
+   6.2) `Order.UpdateStatus` (StoreEf find + transition rules).  
 7) **Generate Report**  
    7.1) Prompt date range.  
-   7.2) `Administrator.GenerateReport` (SQL GROUP BY / SUM via Store).  
+   7.2) `Administrator.GenerateReport` (EF Core GroupBy/Sum() via StoreEf).  
 8) **Logout**  
    8.1) `User.Logout()`; clear `CurrentUserId`; `Switch("main")`.
 
@@ -718,7 +718,7 @@ GlobalMenuHolder.Run();
 
 ## 11) Future Work
 
-- Later (v2): introduce a Services layer or swap ADO.NET for Dapper / EF Core.
+- Later (v2): introduce a Services layer or migrate to a full Repository pattern.
 - Add unit tests for entities and stores.
 
 ---
