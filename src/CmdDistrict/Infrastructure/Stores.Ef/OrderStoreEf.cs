@@ -2,7 +2,7 @@ using cmdDistrict.DataAccess;
 using cmdDistrict.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace cmdDistrict.Infrastructure.StoresEf;
+namespace cmdDistrict.Infrastructure.Stores.Ef;
 
 /// <summary>
 /// EF Core LINQ-backed order store.
