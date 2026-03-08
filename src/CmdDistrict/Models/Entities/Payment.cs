@@ -1,4 +1,4 @@
-using cmdDistrict.Infrastructure.StoresEf;
+using cmdDistrict.Infrastructure.Stores.Ef;
 
 namespace cmdDistrict.Models.Entities;
 

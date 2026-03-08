@@ -31,7 +31,11 @@ public class AppDbContext : DbContext
     {
         string cs = Environment.GetEnvironmentVariable("CMD_SQLSERVER_CS")
                     ?? _devFallback;
-        options.UseSqlServer(cs);
+
+        options.UseSqlServer(cs)
+        .EnableDetailedErrors()          // richer stack traces & provider messages
+        .EnableSensitiveDataLogging();
+
     }
 
     /// <summary>Prints the EF Core connection type and whether SQL Server is reachable.</summary>
@@ -46,7 +50,7 @@ public class AppDbContext : DbContext
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"connection success or failure : failure — {ex.Message}");
+            Console.WriteLine($"connection success or failure : failure — {ex.Message.Substring(0,20)}... ");
         }
     }
 
@@ -56,9 +60,15 @@ public class AppDbContext : DbContext
 
         // User: Table-Per-Hierarchy (single dbo.Users table, Role as discriminator)
         modelBuilder.Entity<User>()
-            .HasDiscriminator<string>("Role")
+            .HasDiscriminator<string>(u => u.Role)
             .HasValue<Customer>("Customer")
             .HasValue<Administrator>("Administrator");
+
+        
+   modelBuilder.Entity<User>()
+        .Property(u => u.Role)
+        .IsRequired();
+
 
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Email)
@@ -72,5 +82,10 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<OrderItem>().Property(oi => oi.Id).ValueGeneratedNever();
         modelBuilder.Entity<Payment>().Property(p => p.Id).ValueGeneratedNever();
         modelBuilder.Entity<Review>().Property(r => r.Id).ValueGeneratedNever();
+
+        
+ modelBuilder.Entity<Customer>();
+    modelBuilder.Entity<Administrator>();
+
     }
 }

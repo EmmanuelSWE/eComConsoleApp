@@ -2,7 +2,7 @@ using cmdDistrict.Common;
 using cmdDistrict.DataAccess;
 using cmdDistrict.Models.Entities;
 
-namespace cmdDistrict.Infrastructure.StoresEf;
+namespace cmdDistrict.Infrastructure.Stores.Ef;
 
 /// <summary>
 /// EF Core LINQ-backed user store.
@@ -22,6 +22,7 @@ public static class UserStoreEf
             Console.WriteLine($"Arguments are : email={email}, password=[hidden]");
             Console.WriteLine($"expected return : bool");
             using var ctx = new AppDbContext();
+        
             var user = ctx.Users.SingleOrDefault(u =>
                 u.Email.ToLower() == email.ToLower() &&
                 u.Password == password);
@@ -38,9 +39,9 @@ public static class UserStoreEf
             Console.WriteLine($"Outcome : passed");
             return true;
         }
-        catch
+        catch (Exception ex)
         {
-            Console.WriteLine($"Outcome : encountered an error");
+            Console.WriteLine($"Outcome : encountered an error - {ex.Message}");
             return false;
         }
     }
@@ -71,16 +72,28 @@ public static class UserStoreEf
                 : new Customer(name, email, password);
 
             ctx.Users.Add(user);
-            ctx.SaveChanges();
+           
+try
+{
+    ctx.Users.Add(user);
+    ctx.SaveChanges(); // <-- if this throws, you will see provider inner exception
+}
+catch (Exception ex)
+{
+    Console.WriteLine("EF FULL EXCEPTION:");
+    Console.WriteLine(ex.ToString());
+    throw; // optionally rethrow so you can see it in the console too
+}
+
 
             Session.Set(user.Id, user.Role);
             Console.WriteLine($"actual return : true");
             Console.WriteLine($"Outcome : passed");
             return true;
         }
-        catch
+        catch (Exception ex)
         {
-            Console.WriteLine($"Outcome : encountered an error");
+            Console.WriteLine($"Outcome : encountered an error - {ex.Message}");
             return false;
         }
     }
@@ -111,9 +124,9 @@ public static class UserStoreEf
             Console.WriteLine($"Outcome : passed");
             return true;
         }
-        catch
+        catch (Exception ex)
         {
-            Console.WriteLine($"Outcome : encountered an error");
+            Console.WriteLine($"Outcome : encountered an error - {ex.Message}");
             return false;
         }
     }

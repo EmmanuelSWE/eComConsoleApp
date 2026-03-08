@@ -1,6 +1,7 @@
 using cmdDistrict.DataAccess;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace cmdDistrict.Models.Entities;
 
 public class Administrator : User
