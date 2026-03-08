@@ -130,6 +130,11 @@ Runtime order:
 **Rules:**
 - Only entity methods touch stores (Menus call entities, not stores directly) to keep flow clean.
 - all private fields of a class must have getters and setters.
+- all linq queries are surrounded by a try catch block.
+- when mapping entity items in a list rather have it display the index + 1 of it first then product content . when searching first filter by looking for userInput -1 as index in list : 
+**validate** -> `if searchIndex < list.length`
+**found** -> use entity Id for linq query
+**error** ->  handle, dont let crash app. 
 
 ---
 
@@ -169,8 +174,8 @@ Runtime order:
 
 5. validation check if email name and password input (add must not be empty)
 6. Linq query : use Helper find UserBy Email using email. 
-7. create user instance (email, name, password (hashed)).
-8. save user instance to table.
+7. create user instance (email, name, password (hashed)) and wallet instance for user.
+8. save user instance and wallet using linq.
 9. return true.
 
 
@@ -206,22 +211,20 @@ Runtime order:
 **Attributes**: `WalletBalance`, `DefaultShippingAddress`
 
 #### 7.2.1 Deposit(userId, amount) ⇒ bool
-1) **Validate**: `amount > 0`.  
-2) **Find (LINQ)**:  
-   `var c = AppState.Users.SingleOrDefault(u => u.Id == userId && u.Role == "Customer");`  
-3) **Update**: `c.WalletBalance += amount`.  
-4) **Return** `true`.
+1. validate amount > 0 :
+2. get users wallet using userID linq operation.
+3. Increment Wallet balance.
+4. 
 
 **Failure cases**
 1) `amount <= 0` → `false`.  
 2) Not found / wrong role → `false`.
+3. Wallet not found -> throw exception.
 
 ---
 
 #### 7.2.2 ViewOrders(userId) ⇒ List<Order>
-1) **Query (LINQ)**:  
-   `AppState.Orders.Where(o => o.CustomerId == userId).OrderByDescending(o => o.CreatedAt).ToList();`  
-2) **Return** list.
+1. Linq query find orders of user : parameter userId used in search.
 
 **Failure cases**
 1) None (empty list ok).
@@ -231,7 +234,7 @@ Runtime order:
 #### 7.2.3 ViewCart(userId) ⇒ Cart
 1) **Find (LINQ)**:  
    `var cart = AppState.Carts.SingleOrDefault(c => c.CustomerId == userId);`  
-2) **Create if missing**: new `Cart { CustomerId = userId }` and `AppState.Carts.Add(cart)`.  
+2) **Create if missing**: new `Cart { CustomerId = userId }` 
 3) **Return** cart.
 
 **Failure cases**
@@ -241,12 +244,12 @@ Runtime order:
 
 ### 7.3 `Administrator : User`
 
-#### 7.3.1 AdjustInventory(userId, productId, delta) ⇒ bool
+#### 7.3.1 AdjustInventory(userId, productId) ⇒ bool
 1) **Auth**:  
-   `AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator")`.  
+   `Users.Any(u => u.Id == userId && u.Role == "Administrator")`.  
 2) **Find product (LINQ)**:  
-   `var p = AppState.Products.SingleOrDefault(x => x.Id == productId);`  
-3) **Compute**: `var newStock = p.Stock + delta;`  
+   get product using search by name or product  in seperate lists.
+3) **Compute**: `var newStock = p.Stock ;`  
 4) **Validate**: `newStock >= 0`.  
 5) **Apply**: `p.Stock = newStock;`  
 6) **Return** `true`.
@@ -260,20 +263,17 @@ Runtime order:
 
 #### 7.3.2 ListAllOrders(userId) ⇒ List<Order>
 1) **Auth admin** via LINQ (as above).  
-2) **Return** `AppState.Orders.OrderByDescending(o => o.CreatedAt).ToList()`.
+2) **Return** `List of orders
 
 **Failure cases**
 1) Non‑admin → return `new List<Order>()` (or handle at menu level).
 
 ---
 
-#### 7.3.3 GenerateReport(userId, from, to) ⇒ string
+#### 7.3.3 GenerateReport(userId, from) ⇒ string
 1) **Auth admin**.  
-2) **Filter (LINQ)**: `var range = AppState.Orders.Where(o => o.CreatedAt >= from && o.CreatedAt <= to);`  
-3) **By status**: `var byStatus = range.GroupBy(o => o.Status).Select(g => (g.Key, Count: g.Count(), Total: g.Sum(o => o.Total)));`  
-4) **Revenue**: `var revenue = range.Sum(o => o.Total);`  
-5) **Top products**:  
-   `var top = range.SelectMany(o => o.Items).GroupBy(i => i.ProductId).Select(g => (ProductId: g.Key, Qty: g.Sum(i => i.Quantity))).OrderByDescending(x => x.Qty).Take(5);`  
+2. Fetch all usrs, products and orders put them in serparate lists. 
+3. store all have variables to store avg and toatl for each list.
 6) **Format** as lines; **return** string.
 
 **Failure cases**
@@ -288,7 +288,7 @@ Runtime order:
 1) **Auth admin**.  
 2) **Validate**: `!string.IsNullOrWhiteSpace(name)`, `price >= 0`, `stock >= 0`.  
 3) **Create**: new `Product { Id = Guid.NewGuid().ToString(), ... }`.  
-4) **Add (LINQ list op)**: `AppState.Products.Add(product)`.  
+4) **Add (LINQ list op)**: savve product to product table
 5) **Return** product.
 
 **Failure cases**
@@ -299,7 +299,7 @@ Runtime order:
 
 #### 7.4.2 Update(userId, id, name, description, price, stock) ⇒ bool
 1) **Auth admin**.  
-2) **Find (LINQ)**: `var p = AppState.Products.SingleOrDefault(x => x.Id == id);`  
+2) **Find (LINQ)**: find from table 
 3) **Validate** fields.  
 4) **Apply** changes.  
 5) **Return** `true`.
@@ -314,7 +314,7 @@ Runtime order:
 #### 7.4.3 Delete(userId, id) ⇒ bool
 1) **Auth admin**.  
 2) **Find** product.  
-3) **Remove**: `AppState.Products.Remove(p)`.  
+3) **Remove (linq)**: remove using id as where parameter to delte form table 
 4) **Return** `true`.
 
 **Failure cases**
@@ -324,7 +324,7 @@ Runtime order:
 ---
 
 #### 7.4.4 FindById(id) ⇒ Product?
-1) **LINQ**: `AppState.Products.SingleOrDefault(p => p.Id == id)`.  
+1) **LINQ**: find by id as param single or default
 2) **Return** product or `null`.
 
 **Failure cases**
@@ -334,9 +334,9 @@ Runtime order:
 
 #### 7.4.5 SearchByName(query) ⇒ List<Product>
 1) **Normalize**: `q = query?.Trim();`  
-2) **If empty**: return **all** products ordered by name.  
+2) **If empty linq**: return **all** products ordered by name.  
 3) **Else**:  
-   `AppState.Products.Where(p => p.Name.Contains(q, StringComparison.OrdinalIgnoreCase)).OrderBy(p => p.Name).ToList();`
+    return products where name like '%{phrase}%';
 
 **Failure cases**
 1) None.
@@ -347,13 +347,13 @@ Runtime order:
 
 #### 7.5.1 AddItem(userId, productId, quantity) ⇒ bool
 1) **Validate**: `quantity > 0`.  
-2) **Cart (LINQ)**: `var cart = AppState.Carts.SingleOrDefault(c => c.CustomerId == userId) ?? create+add`.  
-3) **Product (LINQ)**: `var p = AppState.Products.SingleOrDefault(x => x.Id == productId)`.  
-4) **Existing line**: `var line = cart.Items.SingleOrDefault(i => i.ProductId == productId);`  
-5) **Desired qty**: `var newQty = (line?.Quantity ?? 0) + quantity;`  
-6) **Stock check**: `p.Stock >= newQty` (stock decremented on **order**, not here).  
-7) **Upsert**: create/update `CartItem` with `UnitPrice = p.Price`.  
-8) **Return** `true`.
+2) **Cart (LINQ)**: get cart of user from cart table param : id
+3) **Product (LINQ)**: get product from product table 
+5) **Desired qty**: if p.stock >= quantity 
+6) **Stock check**: decrement stock of product record. 
+7. add stock item to users cart.  
+8. save all reconrds to theire tables
+9) **Return** `true`.
 
 **Failure cases**
 1) `quantity <= 0` → `false`.  
@@ -363,9 +363,9 @@ Runtime order:
 ---
 
 #### 7.5.2 RemoveItem(userId, productId) ⇒ bool
-1) **Cart**: find by `userId`.  
-2) **Line**: `SingleOrDefault` by `productId`.  
-3) **If found**: `cart.Items.Remove(line)`; **return** `true`.  
+1) **Cart** linq: find by cart`userId`.  
+2) **Line**: `SingleOrDefault` by `productId` and cartId in cartItem table.  
+3) **If found**: remove from cartIems table **return** `true`.  
 4) **Else**: `false`.
 
 **Failure cases**
@@ -374,8 +374,13 @@ Runtime order:
 ---
 
 #### 7.5.3 Clear(userId) ⇒ void
-1) **Cart**: get by `userId`; if missing create then clear.  
-2) **Clear**: `cart.Items.Clear()`.
+1) **Cart**: get by `userId`; if missing create then clear.
+2. linq Q query : find all orderItems by cartItem id  
+3. foreach oderItem founnd delete.
+4. save
+5. remove from cartItems list. using List.Remove(Item) template
+5. print dynamic message of cartItems being deleted
+
 
 **Failure cases**
 1) None.
@@ -415,12 +420,12 @@ Runtime order:
 #### 7.7.1 PlaceFromCart(userId, cart) ⇒ Order
 1) **Ownership**: `cart.CustomerId == userId`.  
 2) **Non‑empty**: `cart.Items.Any()`.  
-3) **Re‑validate stock (LINQ)** for each line against `AppState.Products`.  
+3) **Re‑validate stock (LINQ)** for each line against `Products`.  
 4) **Snapshot** `OrderItem`s (copy `ProductName`, `UnitPrice`, `Quantity`).  
 5) **Decrement stock** on each corresponding product.  
 6) **Compute total**: `items.Sum(i => i.UnitPrice * i.Quantity)`.  
 7) **Create** order `{ Status = Pending, CreatedAt = DateProvider.UtcNow }`.  
-8) **Add** to `AppState.Orders`.  
+8) **Add** to `Orders`.  
 9) **Return** order.
 
 **Failure cases**
@@ -431,7 +436,7 @@ Runtime order:
 ---
 
 #### 7.7.2 Cancel(userId, orderId) ⇒ bool
-1) **Find order**: `var o = AppState.Orders.SingleOrDefault(x => x.Id == orderId);`  
+1) **Find order**: `var o = Orders.SingleOrDefault(x => x.Id == orderId);`  
 2) **Ownership**: user must be owner (or admin via role check).  
 3) **Allowed**: `o.Status ∈ { Pending, Paid }` and **not Shipped**.  
 4) **Set** `o.Status = Cancelled`.  
@@ -537,7 +542,7 @@ Runtime order:
 
 #### 7.10.2 GetForProduct(productId) ⇒ List<Review>
 1) **LINQ**:  
-   `AppState.Reviews.Where(r => r.ProductId == productId).OrderByDescending(r => r.CreatedAt).ToList();`  
+   `Reviews.Where(r => r.ProductId == productId).OrderByDescending(r => r.CreatedAt).ToList();`  
 2) **Return** list.
 
 **Failure cases**
@@ -546,7 +551,7 @@ Runtime order:
 ---
 
 #### 7.10.3 AverageRating(productId) ⇒ double
-1) **Project (LINQ)**: `var ratings = AppState.Reviews.Where(r => r.ProductId == productId).Select(r => r.Rating);`  
+1) **Project (LINQ)**: `var ratings = Reviews.Where(r => r.ProductId == productId).Select(r => r.Rating);`  
 2) **If none**: return `0`.  
 3) **Else**: `ratings.Average()`.
 
@@ -573,7 +578,7 @@ Runtime order:
 ### 8.2 `MainMenu` (guest)
 1) **Register**  
    1.1) Prompt name/email/password/role.  
-   1.2) `User.Sign` (LINQ uniqueness check on `AppState.Users`).  
+   1.2) `User.Sign` (LINQ uniqueness check on `Users`).  
    1.3) **Success** → `GlobalMenuHolder.SwitchToRole(userId)`.  
    1.4) **Fail** → show reason; remain in Main.
 2) **Login**  
@@ -661,7 +666,7 @@ Runtime order:
 ---
 
 ### 8.5 `GlobalMenuHolder` (router)
-1) **Bootstrap**: register `MainMenu`, `CustomerMenu`, `AdminMenu`; set current = Main.  
+1) **Start**: register `MainMenu`, `CustomerMenu`, `AdminMenu`; set current = Main.  
 2) **SwitchToRole(userId)**:  
    2.1) `CurrentUserId = userId`.  
    2.2) `CurrentRole = User.GetRole(userId)` (LINQ lookup).  

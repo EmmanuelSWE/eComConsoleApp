@@ -143,6 +143,7 @@
 **Attributes**
 - id : string
 - ProductId : string
+- cartId : string
 - ProductName : string
 - UnitPrice : decimal
 - Quantity : int
