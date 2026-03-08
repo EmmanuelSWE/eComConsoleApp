@@ -1,6 +1,8 @@
 using cmdDistrict.Common;
 
 namespace cmdDistrict.Models.Entities;
+
+public class CartItem
 {
     private string  _id;
     private string  _productId;
@@ -23,9 +25,9 @@ namespace cmdDistrict.Models.Entities;
     public decimal UnitPrice   { get => _unitPrice;   set => _unitPrice   = value; }
     public int     Quantity    { get => _quantity;    set => _quantity    = value; }
 
-    // ── Static actions ────────────────────────────────────────────────────────
+    // ── Static actions ────────────────────────────────────────────────────
 
-    /// <summary>Updates the quantity of a cart line, adjusting product stock for the delta.</summary>
+    /// <summary>Changes a cart line quantity, adjusting stock for the delta.</summary>
     public static bool UpdateQuantity(string userId, string productId, int newQuantity)
     {
         try
@@ -38,8 +40,7 @@ namespace cmdDistrict.Models.Entities;
             var product = AppState.Products.SingleOrDefault(p => p.Id == productId);
             if (product is null) return false;
 
-            // delta relative to current qty (stock was already decremented at AddItem)
-            var delta = newQuantity - item.Quantity; // positive = need more stock
+            var delta = newQuantity - item.Quantity; // +ve means we need more stock
             if (delta > 0 && product.Stock < delta) return false;
             product.Stock -= delta;
             item.Quantity  = newQuantity;

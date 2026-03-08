@@ -1,6 +1,8 @@
 using cmdDistrict.Common;
 
 namespace cmdDistrict.Models.Entities;
+
+public class Product
 {
     private string  _id;
     private string  _name;

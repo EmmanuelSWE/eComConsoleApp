@@ -28,14 +28,18 @@ public class Review
     public string   Comment    { get => _comment;    set => _comment    = value; }
     public DateTime CreatedAt  { get => _createdAt;  set => _createdAt  = value; }
 
-    // ── Static actions ────────────────────────────────────────────────────────
+    // ── Static actions ────────────────────────────────────────────────────
 
-    /// <summary>Submits a review for a product. Rating must be 1–5.</summary>
+    /// <summary>Submits a product review (rating 1–5). One review per customer per product.</summary>
     public static bool Submit(string userId, string productId, int rating, string comment)
     {
         try
         {
             if (rating < 1 || rating > 5) return false;
+            if (AppState.Products.All(p => p.Id != productId)) return false;
+            // prevent duplicate reviews
+            if (AppState.Reviews.Any(r => r.ProductId == productId && r.CustomerId == userId)) return false;
+
             var review = new Review(productId, userId, rating, comment);
             AppState.Reviews.Add(review);
             return true;
@@ -56,16 +60,13 @@ public class Review
         catch { return new List<Review>(); }
     }
 
-    /// <summary>Returns the average rating for a product, or 0 if no reviews.</summary>
+    /// <summary>Returns the average rating for a product (0 if none).</summary>
     public static double AverageRating(string productId)
     {
         try
         {
-            var ratings = AppState.Reviews
-                .Where(r => r.ProductId == productId)
-                .Select(r => r.Rating)
-                .ToList();
-            return ratings.Count > 0 ? ratings.Average() : 0.0;
+            var ratings = AppState.Reviews.Where(r => r.ProductId == productId).Select(r => r.Rating).ToList();
+            return ratings.Any() ? ratings.Average() : 0.0;
         }
         catch { return 0.0; }
     }

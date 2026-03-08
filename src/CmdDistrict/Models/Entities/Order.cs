@@ -28,41 +28,37 @@ public class Order
     public OrderStatus     Status     { get => _status;     set => _status     = value; }
     public DateTime        CreatedAt  { get => _createdAt;  set => _createdAt  = value; }
 
-    // ── Static actions ────────────────────────────────────────────────────────
+    // ── Static actions ────────────────────────────────────────────────────
 
-    /// <summary>Snapshots the cart into a new Order and saves it. Stock already decremented at cart add-time.</summary>
+    /// <summary>Snapshots the customer's cart into a new Order and clears the cart.</summary>
     public static Order? PlaceFromCart(string userId, Cart cart)
     {
         try
         {
-            if (cart.CustomerId != userId) throw new InvalidOperationException("Cart does not belong to this user.");
+            if (cart.CustomerId != userId) return null;
             if (!cart.Items.Any()) return null;
 
             var order = new Order(userId);
-            foreach (var item in cart.Items)
-                order.Items.Add(new OrderItem(item.ProductId, item.ProductName, item.UnitPrice, item.Quantity));
-
+            foreach (var ci in cart.Items)
+                order.Items.Add(new OrderItem(ci.ProductId, ci.ProductName, ci.UnitPrice, ci.Quantity));
             order.Total = order.Items.Sum(i => i.LineTotal);
+
             AppState.Orders.Add(order);
+            Cart.Clear(userId);   // restores stock already done — Cart.Clear handles it
             return order;
         }
-        catch (InvalidOperationException) { throw; }
         catch { return null; }
     }
 
-    /// <summary>Cancels an order in Pending or Paid state, restocking products.</summary>
+    /// <summary>Cancels a Pending or Paid order, restoring product stock.</summary>
     public static bool Cancel(string userId, string orderId)
     {
         try
         {
             var order = AppState.Orders.SingleOrDefault(o => o.Id == orderId);
-            if (order is null) return false;
-
-            bool isAdmin = AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator");
-            if (order.CustomerId != userId && !isAdmin) return false;
+            if (order is null || order.CustomerId != userId) return false;
             if (order.Status != OrderStatus.Pending && order.Status != OrderStatus.Paid) return false;
 
-            // Restock
             foreach (var item in order.Items)
             {
                 var product = AppState.Products.SingleOrDefault(p => p.Id == item.ProductId);
@@ -74,41 +70,41 @@ public class Order
         catch { return false; }
     }
 
-    /// <summary>Returns the current status of an order.</summary>
+    /// <summary>Returns the status of an order. Throws if not found or user is not the owner.</summary>
     public static OrderStatus TrackStatus(string userId, string orderId)
     {
-        try
-        {
-            var order = AppState.Orders.SingleOrDefault(o => o.Id == orderId);
-            if (order is null) throw new InvalidOperationException("Order not found.");
-            bool isAdmin = AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator");
-            if (order.CustomerId != userId && !isAdmin) throw new InvalidOperationException("Access denied.");
-            return order.Status;
-        }
-        catch (InvalidOperationException) { throw; }
-        catch (Exception ex) { throw new InvalidOperationException(ex.Message); }
+        var order = AppState.Orders.SingleOrDefault(o => o.Id == orderId)
+            ?? throw new InvalidOperationException($"Order '{orderId}' not found.");
+        if (order.CustomerId != userId)
+            throw new InvalidOperationException("Access denied: order belongs to a different customer.");
+        return order.Status;
     }
 
-    /// <summary>Advances an order's status using the allowed state machine (admin only).</summary>
+    /// <summary>Advances or sets an order's status following the allowed state machine (admin or owner).</summary>
     public static bool UpdateStatus(string userId, string orderId, OrderStatus newStatus)
     {
         try
         {
-            if (!AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator")) return false;
             var order = AppState.Orders.SingleOrDefault(o => o.Id == orderId);
             if (order is null) return false;
 
-            bool valid = (order.Status, newStatus) switch
+            bool isAdmin = AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator");
+            bool isOwner = order.CustomerId == userId;
+            if (!isAdmin && !isOwner) return false;
+
+            // Allowed forward transitions
+            bool allowed = (order.Status, newStatus) switch
             {
-                (OrderStatus.Pending,   OrderStatus.Paid)       => true,
-                (OrderStatus.Pending,   OrderStatus.Cancelled)  => true,
-                (OrderStatus.Paid,      OrderStatus.Packed)     => true,
-                (OrderStatus.Paid,      OrderStatus.Cancelled)  => true,
-                (OrderStatus.Packed,    OrderStatus.Shipped)    => true,
-                (OrderStatus.Shipped,   OrderStatus.Delivered)  => true,
+                (OrderStatus.Pending,   OrderStatus.Paid)      => true,
+                (OrderStatus.Paid,      OrderStatus.Packed)    => isAdmin,
+                (OrderStatus.Packed,    OrderStatus.Shipped)   => isAdmin,
+                (OrderStatus.Shipped,   OrderStatus.Delivered) => isAdmin,
+                (OrderStatus.Pending,   OrderStatus.Cancelled) => true,
+                (OrderStatus.Paid,      OrderStatus.Cancelled) => isAdmin,
                 _ => false
             };
-            if (!valid) return false;
+            if (!allowed) return false;
+
             order.Status = newStatus;
             return true;
         }

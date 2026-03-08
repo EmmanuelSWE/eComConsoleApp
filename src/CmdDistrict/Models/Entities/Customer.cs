@@ -1,6 +1,8 @@
 using cmdDistrict.Common;
 
 namespace cmdDistrict.Models.Entities;
+
+public class Customer : User
 {
     private decimal _walletBalance;
     private string? _defaultShippingAddress;

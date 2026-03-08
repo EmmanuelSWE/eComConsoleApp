@@ -1,6 +1,8 @@
 using cmdDistrict.Common;
 
 namespace cmdDistrict.Models.Entities;
+
+public class Payment
 {
     private string        _id;
     private string        _orderId;
@@ -23,9 +25,9 @@ namespace cmdDistrict.Models.Entities;
     public decimal       Amount     { get => _amount;     set => _amount     = value; }
     public PaymentStatus Status     { get => _status;     set => _status     = value; }
 
-    // ── Static actions ────────────────────────────────────────────────────────
+    // ── Static actions ────────────────────────────────────────────────────
 
-    /// <summary>Charges the customer's wallet. Returns a Captured or Failed payment.</summary>
+    /// <summary>Charges the customer's wallet. Returns Captured or Failed payment.</summary>
     public static Payment ChargeWallet(string userId, string orderId, decimal amount)
     {
         try
@@ -52,7 +54,7 @@ namespace cmdDistrict.Models.Entities;
         catch { return new Payment(orderId, userId, amount, PaymentStatus.Failed); }
     }
 
-    /// <summary>Refunds a captured payment and credits the customer's wallet (admin only).</summary>
+    /// <summary>Refunds a captured payment, crediting the customer's wallet (admin only).</summary>
     public static bool Refund(string userId, string paymentId)
     {
         try

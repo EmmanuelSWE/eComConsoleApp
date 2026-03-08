@@ -1,6 +1,8 @@
 using cmdDistrict.Common;
 
 namespace cmdDistrict.Models.Entities;
+
+public class Administrator : User
 {
     private string _permissionLevel;
 

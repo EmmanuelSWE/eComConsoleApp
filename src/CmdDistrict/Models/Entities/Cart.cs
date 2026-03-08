@@ -1,6 +1,8 @@
 using cmdDistrict.Common;
 
 namespace cmdDistrict.Models.Entities;
+
+public class Cart
 {
     private string         _id;
     private string         _customerId;
@@ -17,9 +19,9 @@ namespace cmdDistrict.Models.Entities;
     public string         CustomerId { get => _customerId; set => _customerId = value; }
     public List<CartItem> Items      { get => _items;      set => _items      = value; }
 
-    // ── Static actions ────────────────────────────────────────────────────────
+    // ── Static actions ────────────────────────────────────────────────────
 
-    /// <summary>Adds qty of the given product to the user's cart, decrementing stock.</summary>
+    /// <summary>Adds qty of the given product to the user's cart, decrementing stock immediately.</summary>
     public static bool AddItem(string userId, string productId, int quantity)
     {
         try
@@ -31,7 +33,6 @@ namespace cmdDistrict.Models.Entities;
             if (product is null) return false;
             if (product.Stock < quantity) return false;
 
-            // Decrement stock immediately on add-to-cart
             product.Stock -= quantity;
 
             var existing = cart.Items.SingleOrDefault(i => i.ProductId == productId);
@@ -45,7 +46,7 @@ namespace cmdDistrict.Models.Entities;
         catch { return false; }
     }
 
-    /// <summary>Removes a cart line and restocks the product.</summary>
+    /// <summary>Removes an item from the cart and restores product stock.</summary>
     public static bool RemoveItem(string userId, string productId)
     {
         try
@@ -55,7 +56,6 @@ namespace cmdDistrict.Models.Entities;
             var item = cart.Items.SingleOrDefault(i => i.ProductId == productId);
             if (item is null) return false;
 
-            // Restock
             var product = AppState.Products.SingleOrDefault(p => p.Id == productId);
             if (product is not null) product.Stock += item.Quantity;
 
@@ -65,7 +65,7 @@ namespace cmdDistrict.Models.Entities;
         catch { return false; }
     }
 
-    /// <summary>Removes all items from the cart and restocks products.</summary>
+    /// <summary>Removes all items from the cart and restores their stock.</summary>
     public static void Clear(string userId)
     {
         try
@@ -83,7 +83,7 @@ namespace cmdDistrict.Models.Entities;
         catch { /* swallow */ }
     }
 
-    /// <summary>Returns the cart total (sum of UnitPrice * Quantity).</summary>
+    /// <summary>Returns the sum of UnitPrice * Quantity for the user's cart.</summary>
     public static decimal GetTotal(string userId)
     {
         try
