@@ -16,10 +16,20 @@ public static class Db
     /// <summary>Returns an open <see cref="SqlConnection"/>.</summary>
     public static SqlConnection Open()
     {
+        Console.WriteLine($"connection type : ADO.NET → Microsoft.Data.SqlClient");
         string cs = Environment.GetEnvironmentVariable("CMD_SQLSERVER_CS")
                     ?? _devFallback;
         var conn = new SqlConnection(cs);
-        conn.Open();
+        try
+        {
+            conn.Open();
+            Console.WriteLine($"connection success or failure : success");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"connection success or failure : failure — {ex.Message}");
+            throw;
+        }
         return conn;
     }
 }

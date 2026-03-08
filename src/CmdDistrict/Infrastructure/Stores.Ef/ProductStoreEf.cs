@@ -18,13 +18,27 @@ public static class ProductStoreEf
     {
         try
         {
+            Console.WriteLine($"function name is : {nameof(Create)}");
+            Console.WriteLine($"Arguments are : userId={userId}, product.Id={product.Id}, product.Name={product.Name}");
+            Console.WriteLine($"expected return : bool");
             using var ctx = new AppDbContext();
-            if (!ctx.Users.Any(u => u.Id == userId && u.Role == "Administrator")) return false;
+            if (!ctx.Users.Any(u => u.Id == userId && u.Role == "Administrator"))
+            {
+                Console.WriteLine($"actual return : false");
+                Console.WriteLine($"Outcome : failed");
+                return false;
+            }
             ctx.Products.Add(product);
             ctx.SaveChanges();
+            Console.WriteLine($"actual return : true");
+            Console.WriteLine($"Outcome : passed");
             return true;
         }
-        catch { return false; }
+        catch
+        {
+            Console.WriteLine($"Outcome : encountered an error");
+            return false;
+        }
     }
 
     /// <summary>
@@ -34,18 +48,37 @@ public static class ProductStoreEf
     {
         try
         {
+            Console.WriteLine($"function name is : {nameof(Update)}");
+            Console.WriteLine($"Arguments are : userId={userId}, id={id}, name={name}, price={price}, stock={stock}");
+            Console.WriteLine($"expected return : bool");
             using var ctx = new AppDbContext();
-            if (!ctx.Users.Any(u => u.Id == userId && u.Role == "Administrator")) return false;
+            if (!ctx.Users.Any(u => u.Id == userId && u.Role == "Administrator"))
+            {
+                Console.WriteLine($"actual return : false");
+                Console.WriteLine($"Outcome : failed");
+                return false;
+            }
             var product = ctx.Products.SingleOrDefault(p => p.Id == id);
-            if (product is null) return false;
+            if (product is null)
+            {
+                Console.WriteLine($"actual return : false");
+                Console.WriteLine($"Outcome : failed");
+                return false;
+            }
             product.Name        = name;
             product.Description = description;
             product.Price       = price;
             product.Stock       = stock;
             ctx.SaveChanges();
+            Console.WriteLine($"actual return : true");
+            Console.WriteLine($"Outcome : passed");
             return true;
         }
-        catch { return false; }
+        catch
+        {
+            Console.WriteLine($"Outcome : encountered an error");
+            return false;
+        }
     }
 
     /// <summary>
@@ -55,15 +88,34 @@ public static class ProductStoreEf
     {
         try
         {
+            Console.WriteLine($"function name is : {nameof(Delete)}");
+            Console.WriteLine($"Arguments are : userId={userId}, id={id}");
+            Console.WriteLine($"expected return : bool");
             using var ctx = new AppDbContext();
-            if (!ctx.Users.Any(u => u.Id == userId && u.Role == "Administrator")) return false;
+            if (!ctx.Users.Any(u => u.Id == userId && u.Role == "Administrator"))
+            {
+                Console.WriteLine($"actual return : false");
+                Console.WriteLine($"Outcome : failed");
+                return false;
+            }
             var product = ctx.Products.SingleOrDefault(p => p.Id == id);
-            if (product is null) return false;
+            if (product is null)
+            {
+                Console.WriteLine($"actual return : false");
+                Console.WriteLine($"Outcome : failed");
+                return false;
+            }
             ctx.Products.Remove(product);
             ctx.SaveChanges();
+            Console.WriteLine($"actual return : true");
+            Console.WriteLine($"Outcome : passed");
             return true;
         }
-        catch { return false; }
+        catch
+        {
+            Console.WriteLine($"Outcome : encountered an error");
+            return false;
+        }
     }
 
     // ── Read ──────────────────────────────────────────────────────────────────
@@ -76,10 +128,20 @@ public static class ProductStoreEf
     {
         try
         {
+            Console.WriteLine($"function name is : {nameof(FindById)}");
+            Console.WriteLine($"Arguments are : id={id}");
+            Console.WriteLine($"expected return : Product?");
             using var ctx = new AppDbContext();
-            return ctx.Products.SingleOrDefault(p => p.Id == id);
+            var result = ctx.Products.SingleOrDefault(p => p.Id == id);
+            Console.WriteLine($"actual return : {(result is null ? "null" : result.Id)}");
+            Console.WriteLine($"Outcome : {(result is null ? "failed" : "passed")}");
+            return result;
         }
-        catch { return null; }
+        catch
+        {
+            Console.WriteLine($"Outcome : encountered an error");
+            return null;
+        }
     }
 
     /// <summary>
@@ -90,15 +152,25 @@ public static class ProductStoreEf
     {
         try
         {
+            Console.WriteLine($"function name is : {nameof(SearchByName)}");
+            Console.WriteLine($"Arguments are : query={query}");
+            Console.WriteLine($"expected return : List<Product>");
             using var ctx = new AppDbContext();
             var q = query?.Trim() ?? "";
-            return string.IsNullOrEmpty(q)
+            var result = string.IsNullOrEmpty(q)
                 ? ctx.Products.OrderBy(p => p.Name).ToList()
                 : ctx.Products
                     .Where(p => p.Name.Contains(q))
                     .OrderBy(p => p.Name)
                     .ToList();
+            Console.WriteLine($"actual return : List<Product> count={result.Count}");
+            Console.WriteLine($"Outcome : passed");
+            return result;
         }
-        catch { return new List<Product>(); }
+        catch
+        {
+            Console.WriteLine($"Outcome : encountered an error");
+            return new List<Product>();
+        }
     }
 }

@@ -17,8 +17,21 @@ public static class OrderStoreEf
     {
         try
         {
-            if (cart.CustomerId != userId) return null;
-            if (!cart.Items.Any()) return null;
+            Console.WriteLine($"function name is : {nameof(PlaceFromCart)}");
+            Console.WriteLine($"Arguments are : userId={userId}, cart.Id={cart.Id}, cart.ItemCount={cart.Items.Count}");
+            Console.WriteLine($"expected return : Order?");
+            if (cart.CustomerId != userId)
+            {
+                Console.WriteLine($"actual return : null");
+                Console.WriteLine($"Outcome : failed");
+                return null;
+            }
+            if (!cart.Items.Any())
+            {
+                Console.WriteLine($"actual return : null");
+                Console.WriteLine($"Outcome : failed");
+                return null;
+            }
 
             using var ctx = new AppDbContext();
             var order = new Order(userId);
@@ -30,9 +43,15 @@ public static class OrderStoreEf
             ctx.SaveChanges();
 
             CartStoreEf.Clear(userId); // restores stock and removes cart items
+            Console.WriteLine($"actual return : Order.Id={order.Id}");
+            Console.WriteLine($"Outcome : passed");
             return order;
         }
-        catch { return null; }
+        catch
+        {
+            Console.WriteLine($"Outcome : encountered an error");
+            return null;
+        }
     }
 
     /// <summary>Cancels a Pending or Paid order, restoring product stock.</summary>
@@ -40,11 +59,24 @@ public static class OrderStoreEf
     {
         try
         {
+            Console.WriteLine($"function name is : {nameof(Cancel)}");
+            Console.WriteLine($"Arguments are : userId={userId}, orderId={orderId}");
+            Console.WriteLine($"expected return : bool");
             using var ctx = new AppDbContext();
             var order = ctx.Orders.Include(o => o.Items)
                                    .SingleOrDefault(o => o.Id == orderId);
-            if (order is null || order.CustomerId != userId) return false;
-            if (order.Status != OrderStatus.Pending && order.Status != OrderStatus.Paid) return false;
+            if (order is null || order.CustomerId != userId)
+            {
+                Console.WriteLine($"actual return : false");
+                Console.WriteLine($"Outcome : failed");
+                return false;
+            }
+            if (order.Status != OrderStatus.Pending && order.Status != OrderStatus.Paid)
+            {
+                Console.WriteLine($"actual return : false");
+                Console.WriteLine($"Outcome : failed");
+                return false;
+            }
 
             foreach (var item in order.Items)
             {
@@ -53,9 +85,15 @@ public static class OrderStoreEf
             }
             order.Status = OrderStatus.Cancelled;
             ctx.SaveChanges();
+            Console.WriteLine($"actual return : true");
+            Console.WriteLine($"Outcome : passed");
             return true;
         }
-        catch { return false; }
+        catch
+        {
+            Console.WriteLine($"Outcome : encountered an error");
+            return false;
+        }
     }
 
     /// <summary>Advances or sets an order's status (admin or owner, following the allowed state machine).</summary>
@@ -63,13 +101,26 @@ public static class OrderStoreEf
     {
         try
         {
+            Console.WriteLine($"function name is : {nameof(UpdateStatus)}");
+            Console.WriteLine($"Arguments are : userId={userId}, orderId={orderId}, newStatus={newStatus}");
+            Console.WriteLine($"expected return : bool");
             using var ctx = new AppDbContext();
             var order = ctx.Orders.SingleOrDefault(o => o.Id == orderId);
-            if (order is null) return false;
+            if (order is null)
+            {
+                Console.WriteLine($"actual return : false");
+                Console.WriteLine($"Outcome : failed");
+                return false;
+            }
 
             bool isAdmin = ctx.Users.Any(u => u.Id == userId && u.Role == "Administrator");
             bool isOwner = order.CustomerId == userId;
-            if (!isAdmin && !isOwner) return false;
+            if (!isAdmin && !isOwner)
+            {
+                Console.WriteLine($"actual return : false");
+                Console.WriteLine($"Outcome : failed");
+                return false;
+            }
 
             bool allowed = (order.Status, newStatus) switch
             {
@@ -81,13 +132,24 @@ public static class OrderStoreEf
                 (OrderStatus.Paid,      OrderStatus.Cancelled) => isAdmin,
                 _ => false
             };
-            if (!allowed) return false;
+            if (!allowed)
+            {
+                Console.WriteLine($"actual return : false");
+                Console.WriteLine($"Outcome : failed");
+                return false;
+            }
 
             order.Status = newStatus;
             ctx.SaveChanges();
+            Console.WriteLine($"actual return : true");
+            Console.WriteLine($"Outcome : passed");
             return true;
         }
-        catch { return false; }
+        catch
+        {
+            Console.WriteLine($"Outcome : encountered an error");
+            return false;
+        }
     }
 
     // ── Read ──────────────────────────────────────────────────────────────────
@@ -95,11 +157,16 @@ public static class OrderStoreEf
     /// <summary>Returns the status of an order. Throws if not found or caller is not the owner.</summary>
     public static OrderStatus TrackStatus(string userId, string orderId)
     {
+        Console.WriteLine($"function name is : {nameof(TrackStatus)}");
+        Console.WriteLine($"Arguments are : userId={userId}, orderId={orderId}");
+        Console.WriteLine($"expected return : OrderStatus");
         using var ctx = new AppDbContext();
         var order = ctx.Orders.SingleOrDefault(o => o.Id == orderId)
             ?? throw new InvalidOperationException($"Order '{orderId}' not found.");
         if (order.CustomerId != userId)
             throw new InvalidOperationException("Access denied: order belongs to a different customer.");
+        Console.WriteLine($"actual return : {order.Status}");
+        Console.WriteLine($"Outcome : passed");
         return order.Status;
     }
 }

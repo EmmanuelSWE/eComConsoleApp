@@ -1,4 +1,5 @@
-using cmdDistrict.Common;
+using cmdDistrict.DataAccess;
+using Microsoft.EntityFrameworkCore;
 
 namespace cmdDistrict.Models.Entities;
 
@@ -26,12 +27,14 @@ public class Administrator : User
     {
         try
         {
-            if (!AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator")) return false;
-            var product = AppState.Products.SingleOrDefault(p => p.Id == productId);
+            using var ctx = new AppDbContext();
+            if (!ctx.Users.Any(u => u.Id == userId && u.Role == "Administrator")) return false;
+            var product = ctx.Products.SingleOrDefault(p => p.Id == productId);
             if (product is null) return false;
             var newStock = product.Stock + delta;
             if (newStock < 0) return false;
             product.Stock = newStock;
+            ctx.SaveChanges();
             return true;
         }
         catch { return false; }
@@ -42,9 +45,10 @@ public class Administrator : User
     {
         try
         {
-            if (!AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator"))
+            using var ctx = new AppDbContext();
+            if (!ctx.Users.Any(u => u.Id == userId && u.Role == "Administrator"))
                 return new List<Order>();
-            return AppState.Orders.OrderByDescending(o => o.CreatedAt).ToList();
+            return ctx.Orders.OrderByDescending(o => o.CreatedAt).ToList();
         }
         catch { return new List<Order>(); }
     }
@@ -54,13 +58,14 @@ public class Administrator : User
     {
         try
         {
-            if (!AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator"))
+            using var ctx = new AppDbContext();
+            if (!ctx.Users.Any(u => u.Id == userId && u.Role == "Administrator"))
                 return "Forbidden";
             if (from > to) return "Invalid date range";
 
-            var orders   = AppState.Orders.Where(o => o.CreatedAt >= from && o.CreatedAt <= to).ToList();
-            var products = AppState.Products.ToList();
-            var users    = AppState.Users.ToList();
+            var orders   = ctx.Orders.Include(o => o.Items).Where(o => o.CreatedAt >= from && o.CreatedAt <= to).ToList();
+            var products = ctx.Products.ToList();
+            var users    = ctx.Users.ToList();
 
             var totalRevenue   = orders.Sum(o => o.Total);
             var avgOrderValue  = orders.Count > 0 ? orders.Average(o => (double)o.Total) : 0.0;

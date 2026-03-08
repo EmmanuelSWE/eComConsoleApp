@@ -55,10 +55,6 @@ public abstract class User
             bool ok = UserStoreEf.Sign(name, email, password, role);
             if (!ok) return (false, "An account with that email already exists or registration failed.");
 
-            // Cart is still in-memory until CartStoreEf is introduced
-            if (Session.CurrentRole == "Customer")
-                AppState.Carts.Add(new Cart(Session.CurrentUserId!));
-
             return (true, Session.CurrentUserId!);
         }
         catch (Exception ex) { return (false, ex.Message); }

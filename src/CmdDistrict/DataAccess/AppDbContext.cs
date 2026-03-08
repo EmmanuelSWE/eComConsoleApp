@@ -34,6 +34,22 @@ public class AppDbContext : DbContext
         options.UseSqlServer(cs);
     }
 
+    /// <summary>Prints the EF Core connection type and whether SQL Server is reachable.</summary>
+    public static void CheckConnection()
+    {
+        Console.WriteLine($"connection type : EF Core → Microsoft.EntityFrameworkCore.SqlServer");
+        try
+        {
+            using var ctx = new AppDbContext();
+            bool ok = ctx.Database.CanConnect();
+            Console.WriteLine($"connection success or failure : {(ok ? "success" : "failure")}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"connection success or failure : failure — {ex.Message}");
+        }
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

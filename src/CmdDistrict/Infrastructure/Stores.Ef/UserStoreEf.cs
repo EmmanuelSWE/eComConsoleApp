@@ -18,17 +18,31 @@ public static class UserStoreEf
     {
         try
         {
+            Console.WriteLine($"function name is : {nameof(Login)}");
+            Console.WriteLine($"Arguments are : email={email}, password=[hidden]");
+            Console.WriteLine($"expected return : bool");
             using var ctx = new AppDbContext();
             var user = ctx.Users.SingleOrDefault(u =>
                 u.Email.ToLower() == email.ToLower() &&
                 u.Password == password);
 
-            if (user is null) return false;
+            if (user is null)
+            {
+                Console.WriteLine($"actual return : false");
+                Console.WriteLine($"Outcome : failed");
+                return false;
+            }
 
             Session.Set(user.Id, user.Role);
+            Console.WriteLine($"actual return : true");
+            Console.WriteLine($"Outcome : passed");
             return true;
         }
-        catch { return false; }
+        catch
+        {
+            Console.WriteLine($"Outcome : encountered an error");
+            return false;
+        }
     }
 
     /// <summary>
@@ -39,10 +53,18 @@ public static class UserStoreEf
     {
         try
         {
+            Console.WriteLine($"function name is : {nameof(Sign)}");
+            Console.WriteLine($"Arguments are : name={name}, email={email}, role={role}");
+            Console.WriteLine($"expected return : bool");
             using var ctx = new AppDbContext();
 
             bool exists = ctx.Users.Any(u => u.Email.ToLower() == email.ToLower());
-            if (exists) return false;
+            if (exists)
+            {
+                Console.WriteLine($"actual return : false");
+                Console.WriteLine($"Outcome : failed");
+                return false;
+            }
 
             User user = role.Trim().Equals("Administrator", StringComparison.OrdinalIgnoreCase)
                 ? new Administrator(name, email, password)
@@ -52,9 +74,15 @@ public static class UserStoreEf
             ctx.SaveChanges();
 
             Session.Set(user.Id, user.Role);
+            Console.WriteLine($"actual return : true");
+            Console.WriteLine($"Outcome : passed");
             return true;
         }
-        catch { return false; }
+        catch
+        {
+            Console.WriteLine($"Outcome : encountered an error");
+            return false;
+        }
     }
 
     /// <summary>
@@ -65,14 +93,28 @@ public static class UserStoreEf
     {
         try
         {
+            Console.WriteLine($"function name is : {nameof(ResolveRoleFor)}");
+            Console.WriteLine($"Arguments are : userId={userId}");
+            Console.WriteLine($"expected return : bool");
             using var ctx = new AppDbContext();
             var user = ctx.Users.SingleOrDefault(u => u.Id == userId);
 
-            if (user is null) return false;
+            if (user is null)
+            {
+                Console.WriteLine($"actual return : false");
+                Console.WriteLine($"Outcome : failed");
+                return false;
+            }
 
             Session.Set(user.Id, user.Role);
+            Console.WriteLine($"actual return : true");
+            Console.WriteLine($"Outcome : passed");
             return true;
         }
-        catch { return false; }
+        catch
+        {
+            Console.WriteLine($"Outcome : encountered an error");
+            return false;
+        }
     }
 }

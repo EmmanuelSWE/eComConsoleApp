@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("eComConsoleApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3956edcea9d0dd29dbee6d8713f0b601edcc6fa8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ad57e8e27bd5348913fae3904159046fde757fc6")]
 [assembly: System.Reflection.AssemblyProductAttribute("eComConsoleApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("eComConsoleApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
