@@ -54,6 +54,14 @@
               "target": "Package",
               "version": "[6.1.4, )"
             },
+            "Microsoft.EntityFrameworkCore.Design": {
+              "target": "Package",
+              "version": "[10.0.3, )"
+            },
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[10.0.3, )"
+            },
             "dotenv.net": {
               "target": "Package",
               "version": "[4.0.1, )"
