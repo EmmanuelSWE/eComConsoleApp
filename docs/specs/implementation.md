@@ -730,3 +730,30 @@ GlobalMenuHolder.Run();
 - `./implementation.md` (this file)
 
 ---
+
+## 13) Dev SQL — Users table
+
+> **Development only.** Run once against your local SQL Server (Docker) to bootstrap the Users table before `dotnet run`.
+
+```sql
+-- Dev-only: create dbo.Users for local SQL Server (Docker)
+IF NOT EXISTS (
+    SELECT 1 FROM sys.tables WHERE name = 'Users' AND schema_id = SCHEMA_ID('dbo')
+)
+BEGIN
+    CREATE TABLE dbo.Users (
+        Id       NVARCHAR(36)  NOT NULL CONSTRAINT PK_Users PRIMARY KEY,
+        Name     NVARCHAR(200) NOT NULL,
+        Email    NVARCHAR(320) NOT NULL CONSTRAINT UQ_Users_Email UNIQUE,
+        Password NVARCHAR(256) NOT NULL,   -- hashed; plain-text for demo only
+        Role     NVARCHAR(50)  NOT NULL    -- 'Customer' | 'Administrator'
+    );
+END
+```
+
+**Connection string (local dev):**
+```
+Server=localhost,1433;Database=CmdDistrict;User Id=sa;Password=<your_sa_pw>;Encrypt=True;TrustServerCertificate=True;
+```
+
+---
