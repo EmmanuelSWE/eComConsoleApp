@@ -1,4 +1,5 @@
 using cmdDistrict.Common;
+using cmdDistrict.Infrastructure.StoresEf;
 
 namespace cmdDistrict.Models.Entities;
 
@@ -32,42 +33,13 @@ public class Review
 
     /// <summary>Submits a product review (rating 1–5). One review per customer per product.</summary>
     public static bool Submit(string userId, string productId, int rating, string comment)
-    {
-        try
-        {
-            if (rating < 1 || rating > 5) return false;
-            if (AppState.Products.All(p => p.Id != productId)) return false;
-            // prevent duplicate reviews
-            if (AppState.Reviews.Any(r => r.ProductId == productId && r.CustomerId == userId)) return false;
-
-            var review = new Review(productId, userId, rating, comment);
-            AppState.Reviews.Add(review);
-            return true;
-        }
-        catch { return false; }
-    }
+        => ReviewStoreEf.Submit(userId, productId, rating, comment);
 
     /// <summary>Returns all reviews for a product, newest first.</summary>
     public static List<Review> GetForProduct(string productId)
-    {
-        try
-        {
-            return AppState.Reviews
-                .Where(r => r.ProductId == productId)
-                .OrderByDescending(r => r.CreatedAt)
-                .ToList();
-        }
-        catch { return new List<Review>(); }
-    }
+        => ReviewStoreEf.GetForProduct(productId);
 
     /// <summary>Returns the average rating for a product (0 if none).</summary>
     public static double AverageRating(string productId)
-    {
-        try
-        {
-            var ratings = AppState.Reviews.Where(r => r.ProductId == productId).Select(r => r.Rating).ToList();
-            return ratings.Any() ? ratings.Average() : 0.0;
-        }
-        catch { return 0.0; }
-    }
+        => ReviewStoreEf.AverageRating(productId);
 }

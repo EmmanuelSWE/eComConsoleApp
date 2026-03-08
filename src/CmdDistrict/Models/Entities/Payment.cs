@@ -1,4 +1,4 @@
-using cmdDistrict.Common;
+using cmdDistrict.Infrastructure.StoresEf;
 
 namespace cmdDistrict.Models.Entities;
 
@@ -29,50 +29,9 @@ public class Payment
 
     /// <summary>Charges the customer's wallet. Returns Captured or Failed payment.</summary>
     public static Payment ChargeWallet(string userId, string orderId, decimal amount)
-    {
-        try
-        {
-            var order = AppState.Orders.SingleOrDefault(o => o.Id == orderId);
-            if (order is null || order.CustomerId != userId)
-                return new Payment(orderId, userId, amount, PaymentStatus.Failed);
-            if (amount <= 0)
-                return new Payment(orderId, userId, amount, PaymentStatus.Failed);
-
-            var customer = AppState.Users.OfType<Customer>().SingleOrDefault(u => u.Id == userId);
-            if (customer is null)
-                return new Payment(orderId, userId, amount, PaymentStatus.Failed);
-
-            if (customer.WalletBalance < amount)
-                return new Payment(orderId, userId, amount, PaymentStatus.Failed);
-
-            customer.WalletBalance -= amount;
-            order.Status = OrderStatus.Paid;
-            var payment = new Payment(orderId, userId, amount, PaymentStatus.Captured);
-            AppState.Payments.Add(payment);
-            return payment;
-        }
-        catch { return new Payment(orderId, userId, amount, PaymentStatus.Failed); }
-    }
+        => PaymentStoreEf.ChargeWallet(userId, orderId, amount);
 
     /// <summary>Refunds a captured payment, crediting the customer's wallet (admin only).</summary>
     public static bool Refund(string userId, string paymentId)
-    {
-        try
-        {
-            if (!AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator")) return false;
-            var payment = AppState.Payments.SingleOrDefault(p => p.Id == paymentId);
-            if (payment is null || payment.Status != PaymentStatus.Captured) return false;
-
-            var customer = AppState.Users.OfType<Customer>().SingleOrDefault(u => u.Id == payment.CustomerId);
-            if (customer is not null) customer.WalletBalance += payment.Amount;
-
-            payment.Status = PaymentStatus.Refunded;
-
-            var order = AppState.Orders.SingleOrDefault(o => o.Id == payment.OrderId);
-            if (order is not null) order.Status = OrderStatus.Cancelled;
-
-            return true;
-        }
-        catch { return false; }
-    }
+        => PaymentStoreEf.Refund(userId, paymentId);
 }
