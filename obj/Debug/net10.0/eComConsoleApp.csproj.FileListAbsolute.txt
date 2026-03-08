@@ -3,3 +3,7 @@ C:\Users\Emmanuel\Documents\GradProgram\eComConsoleApp\obj\Debug\net10.0\eComCon
 C:\Users\Emmanuel\Documents\GradProgram\eComConsoleApp\obj\Debug\net10.0\eComConsoleApp.AssemblyInfo.cs
 C:\Users\Emmanuel\Documents\GradProgram\eComConsoleApp\obj\Debug\net10.0\eComConsoleApp.csproj.CoreCompileInputs.cache
 C:\Users\Emmanuel\Documents\GradProgram\eComConsoleApp\obj\Debug\net10.0\eComConsoleApp.sourcelink.json
+C:\Users\Emmanuel\Documents\GradProgram\eComConsoleApp\bin\Debug\net10.0\eComConsoleApp.exe
+C:\Users\Emmanuel\Documents\GradProgram\eComConsoleApp\obj\Debug\net10.0\eComConsoleApp.dll
+C:\Users\Emmanuel\Documents\GradProgram\eComConsoleApp\obj\Debug\net10.0\refint\eComConsoleApp.dll
+C:\Users\Emmanuel\Documents\GradProgram\eComConsoleApp\obj\Debug\net10.0\eComConsoleApp.pdb

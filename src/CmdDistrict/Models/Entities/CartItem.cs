@@ -1,6 +1,6 @@
-namespace cmdDistrict.Models.Entities;
+using cmdDistrict.Common;
 
-public class CartItem
+namespace cmdDistrict.Models.Entities;
 {
     private string  _id;
     private string  _productId;
@@ -17,9 +17,34 @@ public class CartItem
         _quantity    = quantity;
     }
 
-    public string  Id          => _id;
-    public string  ProductId   => _productId;
-    public string  ProductName => _productName;
-    public decimal UnitPrice   => _unitPrice;
-    public int     Quantity    { get => _quantity; set => _quantity = value; }
+    public string  Id          { get => _id;          set => _id          = value; }
+    public string  ProductId   { get => _productId;   set => _productId   = value; }
+    public string  ProductName { get => _productName; set => _productName = value; }
+    public decimal UnitPrice   { get => _unitPrice;   set => _unitPrice   = value; }
+    public int     Quantity    { get => _quantity;    set => _quantity    = value; }
+
+    // ── Static actions ────────────────────────────────────────────────────────
+
+    /// <summary>Updates the quantity of a cart line, adjusting product stock for the delta.</summary>
+    public static bool UpdateQuantity(string userId, string productId, int newQuantity)
+    {
+        try
+        {
+            if (newQuantity <= 0) return false;
+            var cart = AppState.Carts.SingleOrDefault(c => c.CustomerId == userId);
+            if (cart is null) return false;
+            var item = cart.Items.SingleOrDefault(i => i.ProductId == productId);
+            if (item is null) return false;
+            var product = AppState.Products.SingleOrDefault(p => p.Id == productId);
+            if (product is null) return false;
+
+            // delta relative to current qty (stock was already decremented at AddItem)
+            var delta = newQuantity - item.Quantity; // positive = need more stock
+            if (delta > 0 && product.Stock < delta) return false;
+            product.Stock -= delta;
+            item.Quantity  = newQuantity;
+            return true;
+        }
+        catch { return false; }
+    }
 }

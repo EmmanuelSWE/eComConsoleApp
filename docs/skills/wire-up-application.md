@@ -36,7 +36,6 @@ Skill: wire-up-application
 Goal: Make the console app runnable end-to-end (local-only, LINQ).
 Tasks:
 - Ensure AppState lists are initialized
-- (Optional) Create Seed.cs to add a few demo users/products
 - Bootstrap GlobalMenuHolder and run
 - Validate flows & failure paths per the manual tests
 

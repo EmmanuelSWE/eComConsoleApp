@@ -46,7 +46,7 @@ Create/Update:
 - Program.cs entry point under src/CmdDistrict
 
 Rules:
-- All role-specific actions must use ContextUserId
+- All role-specific actions must use ContextUserId (DO NOT IMPLEMENT ENETITIES NOW)
 - Main routes by role via GlobalMenuHolder.SwitchToRole(UserId)
 - Re-prompt on invalid input; friendly messages
 

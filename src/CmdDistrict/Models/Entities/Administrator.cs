@@ -1,6 +1,6 @@
-namespace cmdDistrict.Models.Entities;
+using cmdDistrict.Common;
 
-public class Administrator : User
+namespace cmdDistrict.Models.Entities;
 {
     private string _permissionLevel;
 
@@ -15,5 +15,80 @@ public class Administrator : User
     {
         get => _permissionLevel;
         set => _permissionLevel = value;
+    }
+
+    // ── Static actions ────────────────────────────────────────────────────────
+
+    /// <summary>Adjusts a product's stock by delta. Returns true on success.</summary>
+    public static bool AdjustInventory(string userId, string productId, int delta)
+    {
+        try
+        {
+            if (!AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator")) return false;
+            var product = AppState.Products.SingleOrDefault(p => p.Id == productId);
+            if (product is null) return false;
+            var newStock = product.Stock + delta;
+            if (newStock < 0) return false;
+            product.Stock = newStock;
+            return true;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>Returns all orders newest-first. Empty list for non-admins.</summary>
+    public static List<Order> ListAllOrders(string userId)
+    {
+        try
+        {
+            if (!AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator"))
+                return new List<Order>();
+            return AppState.Orders.OrderByDescending(o => o.CreatedAt).ToList();
+        }
+        catch { return new List<Order>(); }
+    }
+
+    /// <summary>Generates a text sales report for the given date range.</summary>
+    public static string GenerateReport(string userId, DateTime from, DateTime to)
+    {
+        try
+        {
+            if (!AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator"))
+                return "Forbidden";
+            if (from > to) return "Invalid date range";
+
+            var orders   = AppState.Orders.Where(o => o.CreatedAt >= from && o.CreatedAt <= to).ToList();
+            var products = AppState.Products.ToList();
+            var users    = AppState.Users.ToList();
+
+            var totalRevenue   = orders.Sum(o => o.Total);
+            var avgOrderValue  = orders.Count > 0 ? orders.Average(o => (double)o.Total) : 0.0;
+            var avgPrice       = products.Count > 0 ? products.Average(p => (double)p.Price) : 0.0;
+            var totalCustomers = users.Count(u => u.Role == "Customer");
+
+            var topProducts = orders
+                .SelectMany(o => o.Items)
+                .GroupBy(i => i.ProductName)
+                .Select(g => new { Name = g.Key, Qty = g.Sum(i => i.Quantity), Revenue = g.Sum(i => i.LineTotal) })
+                .OrderByDescending(x => x.Revenue)
+                .Take(5)
+                .ToList();
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"  Sales Report : {from:yyyy-MM-dd} to {to:yyyy-MM-dd}");
+            sb.AppendLine($"  {new string('-', 44)}");
+            sb.AppendLine($"  Orders        : {orders.Count}");
+            sb.AppendLine($"  Total Revenue : {totalRevenue:C}");
+            sb.AppendLine($"  Avg Order     : {avgOrderValue:C}");
+            sb.AppendLine($"  Customers     : {totalCustomers}");
+            sb.AppendLine($"  Products      : {products.Count}  (avg price {avgPrice:C})");
+            if (topProducts.Any())
+            {
+                sb.AppendLine("  Top Products :");
+                foreach (var p in topProducts)
+                    sb.AppendLine($"    • {p.Name,-24} qty={p.Qty,4}  rev={p.Revenue:C}");
+            }
+            return sb.ToString();
+        }
+        catch (Exception ex) { return $"Report error: {ex.Message}"; }
     }
 }

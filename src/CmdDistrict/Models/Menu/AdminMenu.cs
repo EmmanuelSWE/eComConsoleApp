@@ -11,7 +11,7 @@ public class AdminMenu : Menu
         Console.WriteLine("  1)  Add Product");
         Console.WriteLine("  2)  Update Product");
         Console.WriteLine("  3)  Delete Product");
-        Console.WriteLine("  4)  Restock Product (Adjust Inventory)");
+        Console.WriteLine("  4)  Restock Product  (Adjust Inventory)");
         Console.WriteLine("  5)  View All Products");
         Console.WriteLine("  6)  View All Orders");
         Console.WriteLine("  7)  Update Order Status");
@@ -38,7 +38,7 @@ public class AdminMenu : Menu
         }
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
+    // ── Actions ───────────────────────────────────────────────────────────────
 
     private void DoAddProduct()
     {
@@ -49,13 +49,13 @@ public class AdminMenu : Menu
         Console.Write("  Stock       : "); var sStr  = Console.ReadLine()?.Trim() ?? "";
 
         if (!decimal.TryParse(pStr, out var price) || !int.TryParse(sStr, out var stock))
-        { Console.WriteLine("  [!] Invalid price or stock value."); return; }
+        { Console.WriteLine("  [!] Invalid price or stock — price must be decimal, stock must be whole number."); return; }
 
         var product = Product.Create(ContextUserId!, name, desc, price, stock);
         if (product is not null)
             Console.WriteLine($"  [✓] Product created — ID: {product.Id}");
         else
-            Console.WriteLine("  [!] Failed — check that name is not empty and price/stock ≥ 0.");
+            Console.WriteLine("  [!] Failed — ensure name is not empty and price/stock ≥ 0.");
     }
 
     private void DoUpdateProduct()
@@ -68,7 +68,7 @@ public class AdminMenu : Menu
         Console.Write("  Stock       : "); var sStr = Console.ReadLine()?.Trim() ?? "";
 
         if (!decimal.TryParse(pStr, out var price) || !int.TryParse(sStr, out var stock))
-        { Console.WriteLine("  [!] Invalid price or stock value."); return; }
+        { Console.WriteLine("  [!] Invalid price or stock."); return; }
 
         if (Product.Update(ContextUserId!, id, name, desc, price, stock))
             Console.WriteLine("  [✓] Product updated.");
@@ -90,11 +90,11 @@ public class AdminMenu : Menu
     private void DoRestock()
     {
         Console.WriteLine("\n  -- Adjust Inventory --");
-        Console.Write("  Product ID                              : "); var id   = Console.ReadLine()?.Trim() ?? "";
-        Console.Write("  Delta (+add / -remove)                  : "); var dStr = Console.ReadLine()?.Trim() ?? "";
+        Console.Write("  Product ID          : "); var id   = Console.ReadLine()?.Trim() ?? "";
+        Console.Write("  Delta (+add/-remove): "); var dStr = Console.ReadLine()?.Trim() ?? "";
 
         if (!int.TryParse(dStr, out var delta))
-        { Console.WriteLine("  [!] Delta must be a whole number."); return; }
+        { Console.WriteLine("  [!] Delta must be a whole number (e.g. +10 or -3)."); return; }
 
         if (Administrator.AdjustInventory(ContextUserId!, id, delta))
             Console.WriteLine("  [✓] Inventory updated.");
@@ -115,7 +115,7 @@ public class AdminMenu : Menu
         if (orders.Count == 0) { Console.WriteLine("\n  No orders found."); return; }
 
         Console.WriteLine();
-        Console.WriteLine($"  {"Date",-20} {"Customer",-36} {"Status",-12} {"Total",9}  {"Order ID"}");
+        Console.WriteLine($"  {"Date",-20} {"Customer ID",-36} {"Status",-12} {"Total",9}  {"Order ID"}");
         Console.WriteLine("  " + new string('-', 105));
         foreach (var o in orders)
             Console.WriteLine(
@@ -125,12 +125,12 @@ public class AdminMenu : Menu
     private void DoUpdateStatus()
     {
         Console.WriteLine("\n  -- Update Order Status --");
-        Console.Write("  Order ID   : "); var orderId   = Console.ReadLine()?.Trim() ?? "";
+        Console.Write("  Order ID                                              : "); var orderId   = Console.ReadLine()?.Trim() ?? "";
         Console.Write("  New status (Pending/Paid/Packed/Shipped/Delivered/Cancelled): ");
         var statusStr = Console.ReadLine()?.Trim() ?? "";
 
         if (!Enum.TryParse<OrderStatus>(statusStr, ignoreCase: true, out var status))
-        { Console.WriteLine("  [!] Invalid status value."); return; }
+        { Console.WriteLine("  [!] Invalid status. Options: Pending, Paid, Packed, Shipped, Delivered, Cancelled."); return; }
 
         if (Order.UpdateStatus(ContextUserId!, orderId, status))
             Console.WriteLine($"  [✓] Order status updated to {status}.");
@@ -154,9 +154,9 @@ public class AdminMenu : Menu
         Console.Write("  To   (yyyy-MM-dd): "); var toStr   = Console.ReadLine()?.Trim() ?? "";
 
         if (!DateTime.TryParse(fromStr, out var from) || !DateTime.TryParse(toStr, out var to))
-        { Console.WriteLine("  [!] Invalid date — use format yyyy-MM-dd."); return; }
+        { Console.WriteLine("  [!] Invalid date format — use yyyy-MM-dd."); return; }
 
-        // Include the full last day
+        // Include the full final day
         var report = Administrator.GenerateReport(ContextUserId!, from, to.AddDays(1).AddSeconds(-1));
         Console.WriteLine();
         Console.WriteLine(report);

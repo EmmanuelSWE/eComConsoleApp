@@ -1,5 +1,5 @@
-using cmdDistrict.Models.Entities;
 using cmdDistrict.Common;
+using cmdDistrict.Models.Entities;
 
 namespace cmdDistrict.Models;
 
@@ -9,19 +9,17 @@ public class CustomerMenu : Menu
 
     public override void PrintOptions()
     {
-        var name = AppState.Users.FirstOrDefault(u => u.Id == ContextUserId)?.Name ?? "Customer";
-        Console.WriteLine($"  Hello, {name}!\n");
         Console.WriteLine("  1)  Browse Products");
-        Console.WriteLine("  2)  Add Product to Cart");
+        Console.WriteLine("  2)  Add to Cart");
         Console.WriteLine("  3)  View Cart");
         Console.WriteLine("  4)  Update Cart Item Quantity");
-        Console.WriteLine("  5)  Remove Cart Item");
+        Console.WriteLine("  5)  Remove Item from Cart");
         Console.WriteLine("  6)  Checkout");
-        Console.WriteLine("  7)  View Order History");
-        Console.WriteLine("  8)  Track Order Status");
-        Console.WriteLine("  9)  Review a Product");
+        Console.WriteLine("  7)  View My Orders");
+        Console.WriteLine("  8)  Track Order");
+        Console.WriteLine("  9)  Add Product Review");
         Console.WriteLine("  10) View Wallet Balance");
-        Console.WriteLine("  11) Add Wallet Funds");
+        Console.WriteLine("  11) Deposit Funds");
         Console.WriteLine("  12) Logout");
     }
 
@@ -29,76 +27,77 @@ public class CustomerMenu : Menu
     {
         switch (input)
         {
-            case "1":  DoBrowse();      return true;
-            case "2":  DoAddToCart();   return true;
-            case "3":  DoViewCart();    return true;
-            case "4":  DoUpdateCart();  return true;
-            case "5":  DoRemoveItem();  return true;
-            case "6":  DoCheckout();    return true;
-            case "7":  DoViewOrders();  return true;
-            case "8":  DoTrackOrder();  return true;
-            case "9":  DoReview();      return true;
-            case "10": DoViewWallet();  return true;
-            case "11": DoDeposit();     return true;
-            case "12": DoLogout();      return true;
+            case "1":  DoBrowse();       return true;
+            case "2":  DoAddToCart();    return true;
+            case "3":  DoViewCart();     return true;
+            case "4":  DoUpdateQty();    return true;
+            case "5":  DoRemoveItem();   return true;
+            case "6":  DoCheckout();     return true;
+            case "7":  DoViewOrders();   return true;
+            case "8":  DoTrackOrder();   return true;
+            case "9":  DoAddReview();    return true;
+            case "10": DoViewWallet();   return true;
+            case "11": DoDeposit();      return true;
+            case "12": DoLogout();       return true;
             default:   return false;
         }
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
+    // ── Actions ───────────────────────────────────────────────────────────────
 
     private void DoBrowse()
     {
         Console.Write("\n  Search (leave blank for all): ");
-        var q        = Console.ReadLine()?.Trim() ?? "";
-        var products = Product.SearchByName(q);
-
+        var query    = Console.ReadLine()?.Trim() ?? "";
+        var products = Product.SearchByName(query);
         if (products.Count == 0) { Console.WriteLine("  No products found."); return; }
         MainMenu.PrintProductTable(products);
     }
 
     private void DoAddToCart()
     {
-        Console.Write("\n  Product ID : "); var productId = Console.ReadLine()?.Trim() ?? "";
-        Console.Write("  Quantity   : "); var qtyStr    = Console.ReadLine()?.Trim() ?? "";
+        Console.WriteLine("\n  -- Add to Cart --");
+        Console.Write("  Product ID : "); var productId = Console.ReadLine()?.Trim() ?? "";
+        Console.Write("  Quantity   : "); var qStr      = Console.ReadLine()?.Trim() ?? "";
 
-        if (!int.TryParse(qtyStr, out var qty) || qty <= 0)
+        if (!int.TryParse(qStr, out var qty) || qty <= 0)
         { Console.WriteLine("  [!] Quantity must be a positive whole number."); return; }
 
         if (Cart.AddItem(ContextUserId!, productId, qty))
             Console.WriteLine("  [✓] Item added to cart.");
         else
-            Console.WriteLine("  [!] Could not add item — check product ID, quantity, and available stock.");
+            Console.WriteLine("  [!] Could not add item — check product ID or available stock.");
     }
 
     private void DoViewCart()
     {
-        var cart  = Customer.ViewCart(ContextUserId!);
-        var total = Cart.GetTotal(ContextUserId!);
-
-        if (cart.Items.Count == 0) { Console.WriteLine("\n  Your cart is empty."); return; }
+        var cart = Customer.ViewCart(ContextUserId!);
+        if (cart is null || cart.Items.Count == 0)
+        { Console.WriteLine("\n  Your cart is empty."); return; }
 
         Console.WriteLine();
-        Console.WriteLine($"  {"Product",-24} {"Qty",5}  {"Unit Price",10}  {"Subtotal",10}");
-        Console.WriteLine("  " + new string('-', 58));
-        foreach (var i in cart.Items)
-            Console.WriteLine($"  {i.ProductName,-24} {i.Quantity,5}  {i.UnitPrice,10:C}  {i.UnitPrice * i.Quantity,10:C}");
-        Console.WriteLine("  " + new string('-', 58));
-        Console.WriteLine($"  {"Total",-24} {"",5}  {"",10}  {total,10:C}");
+        Console.WriteLine($"  {"Product",-26} {"Unit Price",10}  {"Qty",4}  {"Line Total",11}  {"Product ID"}");
+        Console.WriteLine("  " + new string('-', 88));
+        foreach (var item in cart.Items)
+            Console.WriteLine(
+                $"  {item.ProductName,-26} {item.UnitPrice,10:C}  {item.Quantity,4}  {item.UnitPrice * item.Quantity,11:C}  {item.ProductId}");
+        Console.WriteLine("  " + new string('-', 88));
+        Console.WriteLine($"  {"Total",-42} {Cart.GetTotal(ContextUserId!),11:C}");
     }
 
-    private void DoUpdateCart()
+    private void DoUpdateQty()
     {
-        Console.Write("\n  Product ID   : "); var productId = Console.ReadLine()?.Trim() ?? "";
-        Console.Write("  New Quantity : "); var qtyStr    = Console.ReadLine()?.Trim() ?? "";
+        Console.WriteLine("\n  -- Update Cart Item Quantity --");
+        Console.Write("  Product ID   : "); var productId = Console.ReadLine()?.Trim() ?? "";
+        Console.Write("  New Quantity : "); var qStr      = Console.ReadLine()?.Trim() ?? "";
 
-        if (!int.TryParse(qtyStr, out var qty) || qty <= 0)
+        if (!int.TryParse(qStr, out var newQty) || newQty <= 0)
         { Console.WriteLine("  [!] Quantity must be a positive whole number."); return; }
 
-        if (CartItem.UpdateQuantity(ContextUserId!, productId, qty))
+        if (CartItem.UpdateQuantity(ContextUserId!, productId, newQty))
             Console.WriteLine("  [✓] Cart updated.");
         else
-            Console.WriteLine("  [!] Update failed — check product ID, quantity, and available stock.");
+            Console.WriteLine("  [!] Update failed — check product ID or stock availability.");
     }
 
     private void DoRemoveItem()
@@ -114,65 +113,71 @@ public class CustomerMenu : Menu
 
     private void DoCheckout()
     {
-        var cart = Customer.ViewCart(ContextUserId!);
+        Console.WriteLine("\n  -- Checkout --");
 
-        if (cart.Items.Count == 0)
-        { Console.WriteLine("\n  [!] Your cart is empty."); return; }
+        var cart = Customer.ViewCart(ContextUserId!);
+        if (cart is null || cart.Items.Count == 0)
+        { Console.WriteLine("  [!] Your cart is empty. Add items before checking out."); return; }
 
         var order = Order.PlaceFromCart(ContextUserId!, cart);
         if (order is null)
-        { Console.WriteLine("  [!] Checkout failed — some items may be out of stock."); return; }
+        { Console.WriteLine("  [!] Could not place order. Please try again."); return; }
 
-        Console.WriteLine($"  [✓] Order created  ID: {order.Id}");
-        Console.WriteLine($"      Total: {order.Total:C}");
+        Console.WriteLine($"  Order placed (ID: {order.Id}). Total: {order.Total:C}");
         Console.WriteLine("  Processing payment...");
 
         var payment = Payment.ChargeWallet(ContextUserId!, order.Id, order.Total);
 
-        if (payment.Status == PaymentStatus.Captured)
+        if (payment.Status == PaymentStatus.Failed)
         {
-            Cart.Clear(ContextUserId!);
-            Console.WriteLine("  [✓] Payment successful — order status: Paid.");
-        }
-        else
-        {
-            var balance = (AppState.Users.FirstOrDefault(u => u.Id == ContextUserId) as Customer)
-                             ?.WalletBalance ?? 0m;
-            Console.WriteLine($"  [!] Insufficient funds — wallet: {balance:C}, required: {order.Total:C}.");
-            Console.Write("  Add funds now? (y/n): ");
-            var answer = Console.ReadLine()?.Trim().ToLower();
+            Console.WriteLine($"  [!] Insufficient funds. Your total is {order.Total:C}.");
+            Console.Write("  Deposit now to complete payment? (y/n): ");
+            var choice = Console.ReadLine()?.Trim().ToLower();
 
-            if (answer == "y")
+            if (choice == "y")
             {
-                DoDeposit();
-                Console.WriteLine("  Retrying payment...");
-                var retry = Payment.ChargeWallet(ContextUserId!, order.Id, order.Total);
-                if (retry.Status == PaymentStatus.Captured)
+                Console.Write("  Deposit amount: ");
+                var aStr = Console.ReadLine()?.Trim() ?? "";
+                if (decimal.TryParse(aStr, out var amount) && Customer.Deposit(ContextUserId!, amount))
                 {
-                    Cart.Clear(ContextUserId!);
-                    Console.WriteLine("  [✓] Payment successful — order status: Paid.");
+                    Console.WriteLine($"  [✓] Deposited {amount:C}. Retrying payment...");
+                    payment = Payment.ChargeWallet(ContextUserId!, order.Id, order.Total);
                 }
                 else
                 {
-                    Console.WriteLine("  [!] Still insufficient funds — order saved as Pending.");
+                    Console.WriteLine("  [!] Deposit failed. Order cancelled.");
+                    Order.Cancel(ContextUserId!, order.Id);
+                    return;
                 }
             }
             else
             {
-                Console.WriteLine("  Order saved as Pending. You can retry payment later.");
+                Console.WriteLine("  [!] Payment skipped. Order cancelled.");
+                Order.Cancel(ContextUserId!, order.Id);
+                return;
             }
+        }
+
+        if (payment.Status == PaymentStatus.Captured)
+        {
+            Cart.Clear(ContextUserId!);
+            Console.WriteLine($"  [✓] Payment captured. Order confirmed (ID: {order.Id}).");
+        }
+        else
+        {
+            Console.WriteLine("  [!] Payment failed after deposit. Order cancelled.");
+            Order.Cancel(ContextUserId!, order.Id);
         }
     }
 
     private void DoViewOrders()
     {
         var orders = Customer.ViewOrders(ContextUserId!);
-
-        if (orders.Count == 0) { Console.WriteLine("\n  You have no orders yet."); return; }
+        if (orders.Count == 0) { Console.WriteLine("\n  No orders found."); return; }
 
         Console.WriteLine();
         Console.WriteLine($"  {"Date",-20} {"Status",-12} {"Total",9}  {"Order ID"}");
-        Console.WriteLine("  " + new string('-', 75));
+        Console.WriteLine("  " + new string('-', 80));
         foreach (var o in orders)
             Console.WriteLine(
                 $"  {o.CreatedAt:yyyy-MM-dd HH:mm,-20} {o.Status,-12} {o.Total,9:C}  {o.Id}");
@@ -185,46 +190,49 @@ public class CustomerMenu : Menu
         try
         {
             var status = Order.TrackStatus(ContextUserId!, orderId);
-            Console.WriteLine($"  Order status: {status}");
+            Console.WriteLine($"  Order {orderId} is currently: {status}");
         }
-        catch (InvalidOperationException ex)
+        catch
         {
-            Console.WriteLine($"  [!] {ex.Message}");
+            Console.WriteLine("  [!] Order not found.");
         }
     }
 
-    private void DoReview()
+    private void DoAddReview()
     {
-        Console.Write("\n  Product ID    : "); var productId = Console.ReadLine()?.Trim() ?? "";
-        Console.Write("  Rating (1–5)  : "); var ratingStr = Console.ReadLine()?.Trim() ?? "";
-        Console.Write("  Comment       : "); var comment   = Console.ReadLine()?.Trim() ?? "";
+        Console.WriteLine("\n  -- Add Review --");
+        Console.Write("  Product ID : "); var productId = Console.ReadLine()?.Trim() ?? "";
+        Console.Write("  Rating (1-5): "); var rStr     = Console.ReadLine()?.Trim() ?? "";
+        Console.Write("  Comment     : "); var comment  = Console.ReadLine()?.Trim() ?? "";
 
-        if (!int.TryParse(ratingStr, out var rating))
-        { Console.WriteLine("  [!] Rating must be a number between 1 and 5."); return; }
+        if (!int.TryParse(rStr, out var rating) || rating < 1 || rating > 5)
+        { Console.WriteLine("  [!] Rating must be between 1 and 5."); return; }
 
         if (Review.Submit(ContextUserId!, productId, rating, comment))
-            Console.WriteLine("  [✓] Review submitted.");
+            Console.WriteLine("  [✓] Review submitted. Thank you!");
         else
-            Console.WriteLine("  [!] Failed — rating must be between 1 and 5.");
+            Console.WriteLine("  [!] Review failed — check product ID or ensure you haven't reviewed this product already.");
     }
 
     private void DoViewWallet()
     {
-        var balance = (AppState.Users.FirstOrDefault(u => u.Id == ContextUserId) as Customer)
-                         ?.WalletBalance ?? 0m;
-        Console.WriteLine($"\n  Wallet Balance: {balance:C}");
+        var customer = AppState.Users.OfType<Customer>().FirstOrDefault(u => u.Id == ContextUserId);
+        if (customer is not null)
+            Console.WriteLine($"\n  Wallet Balance: {customer.WalletBalance:C}");
+        else
+            Console.WriteLine("  [!] Could not retrieve wallet.");
     }
 
     private void DoDeposit()
     {
-        Console.Write("\n  Amount to deposit: $");
-        var amtStr = Console.ReadLine()?.Trim() ?? "";
+        Console.Write("\n  Deposit amount: ");
+        var aStr = Console.ReadLine()?.Trim() ?? "";
 
-        if (!decimal.TryParse(amtStr, out var amount) || amount <= 0)
-        { Console.WriteLine("  [!] Amount must be greater than zero."); return; }
+        if (!decimal.TryParse(aStr, out var amount) || amount <= 0)
+        { Console.WriteLine("  [!] Amount must be a positive number."); return; }
 
         if (Customer.Deposit(ContextUserId!, amount))
-            Console.WriteLine($"  [✓] {amount:C} added to your wallet.");
+            Console.WriteLine($"  [✓] Deposited {amount:C} to your wallet.");
         else
             Console.WriteLine("  [!] Deposit failed.");
     }

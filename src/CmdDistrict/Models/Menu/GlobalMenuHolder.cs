@@ -68,6 +68,9 @@ public static class GlobalMenuHolder
         Switch("main");
     }
 
+    /// <summary>Alias for Start(); called from Program.cs entry point.</summary>
+    public static void Bootstrap() => Start();
+
     /// <summary>Main event loop.</summary>
     public static void Run()
     {

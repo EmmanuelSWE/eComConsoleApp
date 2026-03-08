@@ -17,11 +17,12 @@ public class OrderItem
         _quantity    = quantity;
     }
 
-    public string  Id          => _id;
-    public string  ProductId   => _productId;
-    public string  ProductName => _productName;
-    public decimal UnitPrice   => _unitPrice;
-    public int     Quantity    => _quantity;
+    public string  Id          { get => _id;          set => _id          = value; }
+    public string  ProductId   { get => _productId;   set => _productId   = value; }
+    public string  ProductName { get => _productName; set => _productName = value; }
+    public decimal UnitPrice   { get => _unitPrice;   set => _unitPrice   = value; }
+    public int     Quantity    { get => _quantity;    set => _quantity    = value; }
 
+    /// <summary>Computed line total — UnitPrice × Quantity.</summary>
     public decimal LineTotal => _unitPrice * _quantity;
 }

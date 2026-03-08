@@ -1,36 +1,48 @@
 namespace cmdDistrict.Models;
 
 /// <summary>
-/// Abstract base for all menus.
-/// Show() drives the loop while this menu is active.
-/// HandleSelection returns true = valid option handled; false = re-prompt.
+/// Abstract base for all console menus.
+/// Show() drives the render/input/dispatch loop.
 /// </summary>
 public abstract class Menu
 {
     public string  Key           { get; protected set; } = "";
     public string  Title         { get; protected set; } = "";
-    public string? ContextUserId { get; protected set; }
+    public string? ContextUserId { get; private set; }
 
+    /// <summary>
+    /// Runs the menu loop while this menu is the active menu in GlobalMenuHolder.
+    /// Sets ContextUserId each iteration so handlers always have fresh context.
+    /// </summary>
     public void Show(string? userId)
     {
-        ContextUserId = userId;
-
         while (GlobalMenuHolder.IsCurrentMenu(this))
         {
+            ContextUserId = userId ?? GlobalMenuHolder.CurrentUserId;
+
             Console.WriteLine();
-            Console.WriteLine($"=== {Title} ===");
+            Console.WriteLine($"  === {Title} ===");
+            Console.WriteLine("  " + new string('-', 44));
             PrintOptions();
-            Console.Write("> ");
+            Console.WriteLine("  " + new string('-', 44));
+            Console.Write("  > ");
 
             var input = Console.ReadLine()?.Trim() ?? "";
 
             if (!HandleSelection(input))
-                Console.WriteLine("  [!] Invalid selection — please try again.");
+                Console.WriteLine("  [!] Invalid option — please try again.");
+
+            // Refresh userId in case role-switch changed it
+            userId = GlobalMenuHolder.CurrentUserId;
         }
     }
 
+    /// <summary>Prints the numbered option list for this menu.</summary>
     public abstract void PrintOptions();
 
-    /// <returns>true if a valid option was handled; false to re-prompt.</returns>
+    /// <summary>
+    /// Dispatches the user's input.
+    /// Returns true if input was recognised; false to re-prompt.
+    /// </summary>
     public abstract bool HandleSelection(string input);
 }
