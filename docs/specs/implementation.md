@@ -757,3 +757,16 @@ Server=localhost,1433;Database=CmdDistrict;User Id=sa;Password=<your_sa_pw>;Encr
 ```
 
 ---
+
+## 14) AppState Removal
+
+`Common/AppState.cs` has been deleted. All in-memory list state (`Users`, `Products`, `Carts`, `Orders`, `Reviews`, `Payments`) is now fully owned by EF Core via `AppDbContext`.
+
+Affected files migrated in Skill 99:
+- `Models/Entities/User.cs` — removed `AppState.Carts.Add` registration bridge
+- `Models/Entities/Administrator.cs` — `AdjustInventory`, `ListAllOrders`, `GenerateReport` → EF Core
+- `Models/Entities/Customer.cs` — `Deposit`, `ViewOrders`, `ViewCart` → EF Core
+- `Models/Entities/CartItem.cs` — `UpdateQuantity` → EF Core
+- `Models/Menu/CustomerMenu.cs` — `DoViewWallet` → EF Core
+
+---

@@ -1,4 +1,5 @@
-using cmdDistrict.Common;
+using cmdDistrict.DataAccess;
+using Microsoft.EntityFrameworkCore;
 
 namespace cmdDistrict.Models.Entities;
 
@@ -34,9 +35,11 @@ public class Customer : User
         try
         {
             if (amount <= 0) return false;
-            var customer = AppState.Users.OfType<Customer>().SingleOrDefault(u => u.Id == userId);
+            using var ctx = new AppDbContext();
+            var customer = ctx.Users.OfType<Customer>().SingleOrDefault(u => u.Id == userId);
             if (customer is null) return false;
             customer.WalletBalance += amount;
+            ctx.SaveChanges();
             return true;
         }
         catch { return false; }
@@ -47,7 +50,8 @@ public class Customer : User
     {
         try
         {
-            return AppState.Orders
+            using var ctx = new AppDbContext();
+            return ctx.Orders
                 .Where(o => o.CustomerId == userId)
                 .OrderByDescending(o => o.CreatedAt)
                 .ToList();
@@ -60,11 +64,13 @@ public class Customer : User
     {
         try
         {
-            var cart = AppState.Carts.SingleOrDefault(c => c.CustomerId == userId);
+            using var ctx = new AppDbContext();
+            var cart = ctx.Carts.Include(c => c.Items).SingleOrDefault(c => c.CustomerId == userId);
             if (cart is null)
             {
                 cart = new Cart(userId);
-                AppState.Carts.Add(cart);
+                ctx.Carts.Add(cart);
+                ctx.SaveChanges();
             }
             return cart;
         }

@@ -1,4 +1,5 @@
-using cmdDistrict.Common;
+using cmdDistrict.DataAccess;
+using Microsoft.EntityFrameworkCore;
 
 namespace cmdDistrict.Models.Entities;
 
@@ -33,17 +34,19 @@ public class CartItem
         try
         {
             if (newQuantity <= 0) return false;
-            var cart = AppState.Carts.SingleOrDefault(c => c.CustomerId == userId);
+            using var ctx = new AppDbContext();
+            var cart = ctx.Carts.Include(c => c.Items).SingleOrDefault(c => c.CustomerId == userId);
             if (cart is null) return false;
             var item = cart.Items.SingleOrDefault(i => i.ProductId == productId);
             if (item is null) return false;
-            var product = AppState.Products.SingleOrDefault(p => p.Id == productId);
+            var product = ctx.Products.SingleOrDefault(p => p.Id == productId);
             if (product is null) return false;
 
             var delta = newQuantity - item.Quantity; // +ve means we need more stock
             if (delta > 0 && product.Stock < delta) return false;
             product.Stock -= delta;
             item.Quantity  = newQuantity;
+            ctx.SaveChanges();
             return true;
         }
         catch { return false; }

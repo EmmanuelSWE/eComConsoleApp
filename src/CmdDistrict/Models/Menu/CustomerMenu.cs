@@ -1,4 +1,5 @@
 using cmdDistrict.Common;
+using cmdDistrict.DataAccess;
 using cmdDistrict.Models.Entities;
 
 namespace cmdDistrict.Models;
@@ -216,7 +217,8 @@ public class CustomerMenu : Menu
 
     private void DoViewWallet()
     {
-        var customer = AppState.Users.OfType<Customer>().FirstOrDefault(u => u.Id == ContextUserId);
+        using var ctx = new AppDbContext();
+        var customer = ctx.Users.OfType<Customer>().FirstOrDefault(u => u.Id == ContextUserId);
         if (customer is not null)
             Console.WriteLine($"\n  Wallet Balance: {customer.WalletBalance:C}");
         else
