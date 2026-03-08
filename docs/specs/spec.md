@@ -5,7 +5,7 @@ This document defines the specification for the Online Shopping Backend System, 
 as a C# Console Application. The project simulates the backend logic of a real e commerce
 platform where customers can browse products, manage shopping carts, place orders, and process
 payments, while administrators manage products, inventory, and orders. The system is designed to
-demonstrate strong use of object oriented programming, backend logic design, SQL querying via ADO.NET,
+demonstrate strong use of object oriented programming, backend logic design, LINQ-to-Entities queries via EF Core,
 error handling, and clean architecture within a console based environment. Two submissions are
 required for this project. 
 
@@ -19,7 +19,7 @@ manages the platform inventory and orders
 ## 2. Goals
 - Simple, robust, beginner-friendly.
 - Clear menu loop with input validation.
-- Clean separation of concerns: Menus → Entities → Stores.Sql.
+- Clean separation of concerns: Menus → Entities → Stores.Ef.
 
 ## 3. Non-Goals
 - No GUI.

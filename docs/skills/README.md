@@ -2,7 +2,7 @@
 
 This folder contains **modular skill specs** you can copy into Copilot Chat / Claude / or your internal prompting docs to scaffold and evolve the **Cmd District** console app.
 
-> **SQL Server (Docker) via ADO.NET** — no services, no ORMs.
+> **EF Core + SQL Server (Docker)** — no services, LINQ to Entities.
 
 ## Files
 
