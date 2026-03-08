@@ -18,6 +18,7 @@
 ## 2. Risks & Mitigations
 - **Risk**: enity may not be present→ **Mitigation**: Helper `FindEntity()` guards all enity operations before they are executed.
 - **Risk**: user unauthorized → **Mitigation**: helper `ValidateUser` guards from unathorized users and send back to login menu if unathorized with redirecion message.
+- **Risk**: DB connectivity & TLS trust → **Mitigation**: local dev connection string must include `Encrypt=True;TrustServerCertificate=True`.
 
 
 ## 3. Definition of Done
