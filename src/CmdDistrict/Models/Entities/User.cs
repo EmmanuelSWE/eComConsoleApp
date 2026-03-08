@@ -1,4 +1,5 @@
 using cmdDistrict.Common;
+using cmdDistrict.Infrastructure.StoresSql;
 
 namespace cmdDistrict.Models.Entities;
 
@@ -33,9 +34,11 @@ public abstract class User
     {
         try
         {
-            var user = AppState.Users.SingleOrDefault(u => u.Id == userId);
-            if (user is null) throw new InvalidOperationException($"User '{userId}' not found.");
-            return user.Role;
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new InvalidOperationException("userId must not be empty.");
+            if (!UserStoreSql.ResolveRoleFor(userId))
+                throw new InvalidOperationException($"User '{userId}' not found.");
+            return Session.CurrentRole!;
         }
         catch (InvalidOperationException) { throw; }
         catch (Exception ex) { throw new InvalidOperationException(ex.Message); }
@@ -49,19 +52,14 @@ public abstract class User
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
                 return (false, "Name, email, and password must not be empty.");
 
-            if (AppState.Users.Any(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase)))
-                return (false, "An account with that email already exists.");
+            bool ok = UserStoreSql.Sign(name, email, password, role);
+            if (!ok) return (false, "An account with that email already exists or registration failed.");
 
-            User user = role.Trim().Equals("Administrator", StringComparison.OrdinalIgnoreCase)
-                ? new Administrator(name, email, password)
-                : new Customer(name, email, password);
+            // Cart is still in-memory until CartStoreSql is introduced
+            if (Session.CurrentRole == "Customer")
+                AppState.Carts.Add(new Cart(Session.CurrentUserId!));
 
-            AppState.Users.Add(user);
-
-            if (user is Customer)
-                AppState.Carts.Add(new Cart(user.Id));
-
-            return (true, user.Id);
+            return (true, Session.CurrentUserId!);
         }
         catch (Exception ex) { return (false, ex.Message); }
     }
@@ -74,18 +72,14 @@ public abstract class User
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
                 return (false, "Email and password must not be empty.", "");
 
-            var user = AppState.Users.SingleOrDefault(u =>
-                u.Email.Equals(email, StringComparison.OrdinalIgnoreCase) &&
-                u.Password == password);
+            bool ok = UserStoreSql.Login(email, password);
+            if (!ok) return (false, "Email or password is incorrect.", "");
 
-            if (user is null)
-                return (false, "Email or password is incorrect.", "");
-
-            return (true, user.Id, user.Role);
+            return (true, Session.CurrentUserId!, Session.CurrentRole!);
         }
         catch (Exception ex) { return (false, ex.Message, ""); }
     }
 
-    /// <summary>No-op in entity layer — GlobalMenuHolder.SignOut() handles clearing context.</summary>
-    public static bool Logout() => true;
+    /// <summary>Clears the login session. GlobalMenuHolder.SignOut() also clears router state.</summary>
+    public static bool Logout() { Session.Clear(); return true; }
 }

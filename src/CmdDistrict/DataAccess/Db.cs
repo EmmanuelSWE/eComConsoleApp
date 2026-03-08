@@ -11,7 +11,7 @@ public static class Db
 {
     private const string _devFallback =
         "Server=localhost,1433;Database=CmdDistrict;User Id=sa;" +
-        "Password=Dev_pass!23;Encrypt=True;TrustServerCertificate=True;";
+        "Password=CookAzureDBAshimwe@B0x;Encrypt=True;TrustServerCertificate=True;";
 
     /// <summary>Returns an open <see cref="SqlConnection"/>.</summary>
     public static SqlConnection Open()

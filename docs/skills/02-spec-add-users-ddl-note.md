@@ -1,6 +1,6 @@
 # Skill: 02-spec-add-users-ddl-note
 
-**Goal:** Append a short **development-only** “Users table” SQL snippet to `implementation.md` (or a new `docs/specs/sql.md`), so team members can quickly create the minimal DB for Phase B.  
+**Goal:** Append a short **development-only** “Users table” SQL snippet to `implementation.md` (or a new `docs/specs/sql.md`) so teammates can quickly seed the DB for the EF Core LINQ Phase B.  
 **Docs only; no code.**
 
 ## Files allowed to change
