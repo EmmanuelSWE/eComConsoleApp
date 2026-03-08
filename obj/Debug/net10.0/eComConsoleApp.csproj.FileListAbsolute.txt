@@ -1,0 +1,5 @@
+C:\Users\Emmanuel\Documents\GradProgram\eComConsoleApp\obj\Debug\net10.0\eComConsoleApp.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Emmanuel\Documents\GradProgram\eComConsoleApp\obj\Debug\net10.0\eComConsoleApp.AssemblyInfoInputs.cache
+C:\Users\Emmanuel\Documents\GradProgram\eComConsoleApp\obj\Debug\net10.0\eComConsoleApp.AssemblyInfo.cs
+C:\Users\Emmanuel\Documents\GradProgram\eComConsoleApp\obj\Debug\net10.0\eComConsoleApp.csproj.CoreCompileInputs.cache
+C:\Users\Emmanuel\Documents\GradProgram\eComConsoleApp\obj\Debug\net10.0\eComConsoleApp.sourcelink.json
