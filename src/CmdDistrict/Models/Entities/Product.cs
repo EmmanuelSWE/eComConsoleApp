@@ -1,4 +1,5 @@
 using cmdDistrict.Common;
+using cmdDistrict.Infrastructure.StoresEf;
 
 namespace cmdDistrict.Models.Entities;
 
@@ -32,11 +33,9 @@ public class Product
     {
         try
         {
-            if (!AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator")) return null;
             if (string.IsNullOrWhiteSpace(name) || price < 0 || stock < 0) return null;
             var product = new Product(name, description, price, stock);
-            AppState.Products.Add(product);
-            return product;
+            return ProductStoreEf.Create(userId, product) ? product : null;
         }
         catch { return null; }
     }
@@ -46,15 +45,8 @@ public class Product
     {
         try
         {
-            if (!AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator")) return false;
-            var product = AppState.Products.SingleOrDefault(p => p.Id == id);
-            if (product is null) return false;
             if (string.IsNullOrWhiteSpace(name) || price < 0 || stock < 0) return false;
-            product.Name        = name;
-            product.Description = description;
-            product.Price       = price;
-            product.Stock       = stock;
-            return true;
+            return ProductStoreEf.Update(userId, id, name, description, price, stock);
         }
         catch { return false; }
     }
@@ -62,37 +54,21 @@ public class Product
     /// <summary>Removes a product by id. Returns false on failure.</summary>
     public static bool Delete(string userId, string id)
     {
-        try
-        {
-            if (!AppState.Users.Any(u => u.Id == userId && u.Role == "Administrator")) return false;
-            var product = AppState.Products.SingleOrDefault(p => p.Id == id);
-            if (product is null) return false;
-            AppState.Products.Remove(product);
-            return true;
-        }
+        try { return ProductStoreEf.Delete(userId, id); }
         catch { return false; }
     }
 
     /// <summary>Finds a product by id. Returns null if not found.</summary>
     public static Product? FindById(string id)
     {
-        try { return AppState.Products.SingleOrDefault(p => p.Id == id); }
+        try { return ProductStoreEf.FindById(id); }
         catch { return null; }
     }
 
     /// <summary>Returns all products whose name contains the query (case-insensitive). Empty query returns all.</summary>
     public static List<Product> SearchByName(string query)
     {
-        try
-        {
-            var q = query?.Trim() ?? "";
-            return string.IsNullOrEmpty(q)
-                ? AppState.Products.OrderBy(p => p.Name).ToList()
-                : AppState.Products
-                    .Where(p => p.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
-                    .OrderBy(p => p.Name)
-                    .ToList();
-        }
+        try { return ProductStoreEf.SearchByName(query); }
         catch { return new List<Product>(); }
     }
 }
