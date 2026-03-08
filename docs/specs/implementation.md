@@ -175,13 +175,16 @@ Runtime order:
 1. user inputs signin
 2. Prompted for name : inputs
 3. Prompted for email : inputs
-4. Prompted for password : inputs 
-
-5. validation check if email name and password input (add must not be empty)
-6. Store query : use UserStoreEf to check email uniqueness. 
-7. create user instance (email, name, password (hashed)) and wallet instance for user.
-8. save user instance and wallet via Store (SQL INSERT).
-9. Store returns `bool`; on success, sets `Session.CurrentUserId` and `Session.CurrentRole` internally.
+4. Prompted for password : inputs
+5. Prompted for Role : inputs {1 for Customer 2 for Administrator}
+6. compare if Role is 2 : make admin account
+7.   Prompted for DefaultShippingAddress : inputs
+8. validation check if email name and password input (add must not be empty) if Role `==` Customer `&&` DefaultShippingAddress must not be null
+9. Store query : use UserStoreEf to check email uniqueness.
+10. create user instance (email, name, password (hashed)) and wallet instance for user.
+11. if Role `==` Customer set user.DefaultShippingAddress to DefaultShippingAddress
+12. save user instance and wallet via Store (SQL INSERT).
+13. Store returns `bool`; on success, sets `Session.CurrentUserId` and `Session.CurrentRole` internally.
 
 
 **Failure cases**
@@ -499,7 +502,7 @@ Runtime order:
 3) **Validate amount** `> 0`.  
 4) **Funds check**: if `customer.WalletBalance >= amount` →  
    4.1) Deduct wallet (`customer.WalletBalance -= amount`).  
-   4.2) Create `Payment { Status = Captured }`; add to `order.Payments` (or global list if you keep one).  
+   4.2) Create `Payment { Status = Captured }`; add to `order.Payments`  
    4.3) Set `order.Status = Paid`.  
    4.4) **Return** payment.  
 5) **Insufficient funds** →  
