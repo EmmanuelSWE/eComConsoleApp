@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class AddProductCommand : ICommand
 {
-    public string Description => "Add a new product to the catalog";
+    public string Description => "Add Product — Enter the product name, description, price, and initial stock quantity. The product becomes available to customers immediately.";
 
     public void Execute()
     {

@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class ViewAllProductsCommand : ICommand
 {
-    public string Description => "View all products in the catalog";
+    public string Description => "View All Products — Displays every product in the catalog with name, price, stock level, and ID regardless of availability.";
 
     public void Execute()
     {

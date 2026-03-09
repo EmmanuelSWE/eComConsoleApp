@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class TrackOrderCommand : ICommand
 {
-    public string Description => "Track the status of an order";
+    public string Description => "Track Order — Enter an Order ID to see its current status (Pending, Paid, Shipped, Delivered, or Cancelled).";
 
     public void Execute()
     {

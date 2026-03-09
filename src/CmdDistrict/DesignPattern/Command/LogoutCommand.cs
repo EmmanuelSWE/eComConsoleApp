@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class LogoutCommand : ICommand
 {
-    public string Description => "Log out of your account";
+    public string Description => "Logout — Clears your session and returns you to the Main Menu. Any items left in your cart are saved for your next login.";
 
     public void Execute()
     {

@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class CheckoutCommand : ICommand
 {
-    public string Description => "Checkout and process payment";
+    public string Description => "Checkout — Converts your cart into an order and charges your wallet. Ensure your wallet balance covers the cart total before checking out.";
 
     public void Execute()
     {

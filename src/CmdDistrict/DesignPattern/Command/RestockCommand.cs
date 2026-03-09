@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class RestockCommand : ICommand
 {
-    public string Description => "Adjust product inventory";
+    public string Description => "Restock Product — Enter the Product ID and a positive number to increase stock, or a negative number to decrease it. Stock cannot go below zero.";
 
     public void Execute()
     {

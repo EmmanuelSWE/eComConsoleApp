@@ -1,3 +1,5 @@
+using cmdDistrict.DesignPattern.Command;
+
 namespace cmdDistrict.Models;
 
 /// <summary>
@@ -9,6 +11,9 @@ public abstract class Menu
     public string  Key           { get; protected set; } = "";
     public string  Title         { get; protected set; } = "";
     public string? ContextUserId { get; private set; }
+
+    /// <summary>All commands registered for this menu, in display order.</summary>
+    protected List<ICommand> Commands { get; set; } = new();
 
     /// <summary>
     /// Runs the menu loop while this menu is the active menu in GlobalMenuHolder.
@@ -35,6 +40,18 @@ public abstract class Menu
             // Refresh userId in case role-switch changed it
             userId = GlobalMenuHolder.CurrentUserId;
         }
+    }
+
+    /// <summary>Prints the Description of every command in this menu's list.</summary>
+    protected void DescribeMenu()
+    {
+        Console.WriteLine();
+        Console.WriteLine($"  === {Title} — Command Descriptions ===");
+        Console.WriteLine("  " + new string('-', 44));
+        int i = 1;
+        foreach (var cmd in Commands)
+            Console.WriteLine($"  {i++,2}) {cmd.Description}");
+        Console.WriteLine("  " + new string('-', 44));
     }
 
     /// <summary>Prints the numbered option list for this menu.</summary>

@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class ViewAllOrdersCommand : ICommand
 {
-    public string Description => "View all customer orders";
+    public string Description => "View All Orders — Lists every order across all customers, newest first, with Order ID, customer, status, total, and date.";
 
     public void Execute()
     {

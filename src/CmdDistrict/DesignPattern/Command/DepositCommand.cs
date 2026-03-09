@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class DepositCommand : ICommand
 {
-    public string Description => "Deposit funds into your wallet";
+    public string Description => "Deposit Funds — Enter a positive amount to add to your wallet balance. Funds are available immediately for checkout.";
 
     public void Execute()
     {

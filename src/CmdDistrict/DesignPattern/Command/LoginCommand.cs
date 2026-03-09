@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class LoginCommand : ICommand
 {
-    public string Description => "Log in to your account";
+    public string Description => "Login — Enter your registered email and password. On success you are taken to your role's menu (Customer or Admin).";
 
     public void Execute()
     {
