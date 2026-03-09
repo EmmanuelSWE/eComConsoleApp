@@ -1,10 +1,12 @@
 [Link to GitHub](https://github.com/EmmanuelSWE/eComConsoleApp)
 
-# cmdDistrict
+# cmdDistrict — Phase Two
 
 ## What is cmdDistrict?
 
 A C# console application that simulates the backend of a real e-commerce platform. Customers can browse products, manage their cart, place orders, and process payments — while administrators manage inventory, orders, and generate reports.
+
+Phase two introduces the **Command design pattern** across all menus, decoupling menu layout from business logic entirely. It also adds **inline option descriptions** so users always know what each menu choice does before selecting it.
 
 ## Why cmdDistrict?
 
@@ -12,6 +14,45 @@ A C# console application that simulates the backend of a real e-commerce platfor
 - Wallet-based payment simulation — no external payment APIs.
 - Persistent data via EF Core + SQL Server.
 - Clean menu-driven interface navigable with arrow keys.
+- Every menu option now shows a short description of what it does.
+- Business logic is fully decoupled from menu layout via the Command pattern.
+
+## Phase Two — What Changed
+
+### Command Design Pattern
+
+Every menu action is now an isolated command class that encapsulates exactly one piece of business logic. Menus hold a list of commands and call `.Execute()` — they have no knowledge of what the command actually does internally.
+
+```
+Menu
+ └── holds List<ICommand>
+       ├── PlaceOrderCommand    → calls Order.PlaceFromCart(...)
+       ├── AddToCartCommand     → calls Cart.AddItem(...)
+       ├── DepositCommand       → calls Customer.Deposit(...)
+       └── ...
+```
+
+**What this gives you:**
+
+- **Decoupled layout from logic** — the menu can be restructured, reordered, or restyled without touching any business logic. Refactoring a menu is purely a UI concern.
+- **Isolated responsibility** — each command owns one operation. Debugging `CheckoutCommand` means opening one file, not tracing through a long menu class.
+- **Easy to extend** — adding a new feature means writing a new command class and registering it in the menu. No existing commands are modified, so nothing breaks.
+- **Consistent error handling** — each command wraps its own try/catch, keeping failures isolated so the menu loop always stays stable.
+
+### Menu Option Descriptions
+
+Each menu now includes a dedicated **Describe Options** entry as a selectable menu option. When chosen, it prints a description of every available action in that menu so the user understands what each option does before committing to one.
+
+```
+  > Describe Options
+
+    Browse Products     — View the full product catalog with names, prices, and stock.
+    Add to Cart         — Select a product and quantity to add to your cart.
+    Checkout            — Pay for your current cart items using your wallet balance.
+    ...
+```
+
+Each command class exposes its own description string, keeping it co-located with the logic it describes and making it trivial to update.
 
 # Documentation
 
@@ -19,7 +60,7 @@ A C# console application that simulates the backend of a real e-commerce platfor
 
 ### Overview
 
-cmdDistrict is a console-based e-commerce backend built on .NET 8 and C# 12. It demonstrates object-oriented design, LINQ-to-Entities queries via EF Core, role-based routing, and structured input validation — all within a console environment.
+cmdDistrict is a console-based e-commerce backend built on .NET 8 and C# 12. It demonstrates object-oriented design, LINQ-to-Entities queries via EF Core, role-based routing, the Command design pattern, and structured input validation — all within a console environment.
 
 ### Components and Functional Requirements
 
@@ -48,54 +89,69 @@ cmdDistrict is a console-based e-commerce backend built on .NET 8 and C# 12. It 
 ## Folder Layout
 
 ```
-.
-├─ docs/
-│  ├─ spec.md
-│  ├─ plan.md
-│  └─ implementation.md
+CmdDistrict/
+├───docs/
+│   ├───skills/
+│   └───specs/
 │
-└─ src/
-   └─ CmdDistrict/
-      ├─ CmdDistrict.csproj
-      ├─ Program.cs
-      │
-      ├─ Common/
-      │  ├─ Guard.cs
-      │  ├─ Result.cs
-      │  ├─ DateProvider.cs
-      │  └─ Session.cs
-      │
-      ├─ DataAccess/
-      │  └─ AppDbContext.cs
-      │
-      ├─ Models/
-      │  ├─ Entities/
-      │  │  ├─ Enums.cs
-      │  │  ├─ User.cs
-      │  │  ├─ Customer.cs
-      │  │  ├─ Administrator.cs
-      │  │  ├─ Product.cs
-      │  │  ├─ CartItem.cs
-      │  │  ├─ Cart.cs
-      │  │  ├─ OrderItem.cs
-      │  │  ├─ Order.cs
-      │  │  ├─ Payment.cs
-      │  │  └─ Review.cs
-      │  │
-      │  └─ Menu/
-      │     ├─ Menu.cs
-      │     ├─ MainMenu.cs
-      │     ├─ CustomerMenu.cs
-      │     ├─ AdminMenu.cs
-      │     └─ GlobalMenuHolder.cs
-      │
-      └─ Infrastructure/
-         └─ Stores.Ef/
-            ├─ UserStoreEf.cs
-            ├─ ProductStoreEf.cs
-            ├─ CartStoreEf.cs
-            ├─ OrderStoreEf.cs
-            └─ ReviewStoreEf.cs
+└───src/
+    └───CmdDistrict/
+        ├───Common/
+        │   ├─ Guard.cs
+        │   ├─ Result.cs
+        │   ├─ DateProvider.cs
+        │   └─ Session.cs
+        │
+        ├───DataAccess/
+        │   └─ AppDbContext.cs
+        │
+        ├───DesignPattern/
+        │   └───Command/
+        │       ├─ ICommand.cs
+        │       ├─ LoginCommand.cs
+        │       ├─ RegisterCommand.cs
+        │       ├─ AddToCartCommand.cs
+        │       ├─ CheckoutCommand.cs
+        │       ├─ PlaceOrderCommand.cs
+        │       ├─ DepositCommand.cs
+        │       ├─ ViewOrdersCommand.cs
+        │       ├─ AddReviewCommand.cs
+        │       ├─ AddProductCommand.cs
+        │       ├─ UpdateProductCommand.cs
+        │       ├─ DeleteProductCommand.cs
+        │       ├─ AdjustInventoryCommand.cs
+        │       ├─ UpdateOrderStatusCommand.cs
+        │       ├─ GenerateReportCommand.cs
+        │       └─ LogoutCommand.cs
+        │
+        ├───Infrastructure/
+        │   └───Stores.Ef/
+        │       ├─ UserStoreEf.cs
+        │       ├─ ProductStoreEf.cs
+        │       ├─ CartStoreEf.cs
+        │       ├─ OrderStoreEf.cs
+        │       └─ ReviewStoreEf.cs
+        │
+        └───Models/
+            ├───Entities/
+            │   ├─ Enums.cs
+            │   ├─ User.cs
+            │   ├─ Customer.cs
+            │   ├─ Administrator.cs
+            │   ├─ Product.cs
+            │   ├─ CartItem.cs
+            │   ├─ Cart.cs
+            │   ├─ OrderItem.cs
+            │   ├─ Order.cs
+            │   ├─ Payment.cs
+            │   └─ Review.cs
+            │
+            └───Menu/
+                ├─ Menu.cs
+                ├─ MainMenu.cs
+                ├─ CustomerMenu.cs
+                ├─ AdminMenu.cs
+                └─ GlobalMenuHolder.cs
 ```
 
 ## Tech Stack
@@ -231,6 +287,7 @@ Server=localhost,1433;Database=CmdDistrict;User Id=sa;Password=<your_sa_pw>;Encr
 **5. Apply migrations & run**
 ```bash
 cd src/CmdDistrict
+dotnet ef database update
 dotnet run
 ```
 
