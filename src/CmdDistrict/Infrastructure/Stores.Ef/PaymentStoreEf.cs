@@ -62,9 +62,9 @@ public static class PaymentStoreEf
             Console.WriteLine($"Outcome : passed");
             return payment;
         }
-        catch
+        catch(Exception ex)
         {
-            Console.WriteLine($"Outcome : encountered an error");
+            Console.WriteLine($"Outcome : encountered an error - {ex.Message}");
             return new Payment(orderId, userId, amount, PaymentStatus.Failed);
         }
     }
