@@ -1,10 +1,23 @@
 namespace cmdDistrict.DesignPattern.Command;
 
-/// <summary>Wraps the Deposit Funds action from CustomerMenu.</summary>
+using cmdDistrict.Models;
+using cmdDistrict.Models.Entities;
+
 public sealed class DepositCommand : ICommand
 {
-    private readonly Action _execute;
     public string Description => "Deposit funds into your wallet";
-    public DepositCommand(Action execute) => _execute = execute;
-    public void Execute() => _execute();
+
+    public void Execute()
+    {
+        Console.Write("\n  Deposit amount: ");
+        var aStr = Console.ReadLine()?.Trim() ?? "";
+
+        if (!decimal.TryParse(aStr, out var amount) || amount <= 0)
+        { Console.WriteLine("  [!] Amount must be a positive number."); return; }
+
+        if (Customer.Deposit(GlobalMenuHolder.CurrentUserId!, amount))
+            Console.WriteLine($"  [✓] Deposited {amount:C} to your wallet.");
+        else
+            Console.WriteLine("  [!] Deposit failed.");
+    }
 }

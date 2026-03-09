@@ -1,10 +1,24 @@
 namespace cmdDistrict.DesignPattern.Command;
 
-/// <summary>Wraps the Add to Cart action from CustomerMenu.</summary>
+using cmdDistrict.Models;
+using cmdDistrict.Models.Entities;
+
 public sealed class AddToCartCommand : ICommand
 {
-    private readonly Action _execute;
     public string Description => "Add a product to your cart";
-    public AddToCartCommand(Action execute) => _execute = execute;
-    public void Execute() => _execute();
+
+    public void Execute()
+    {
+        Console.WriteLine("\n  -- Add to Cart --");
+        Console.Write("  Product ID : "); var productId = Console.ReadLine()?.Trim() ?? "";
+        Console.Write("  Quantity   : "); var qStr      = Console.ReadLine()?.Trim() ?? "";
+
+        if (!int.TryParse(qStr, out var qty) || qty <= 0)
+        { Console.WriteLine("  [!] Quantity must be a positive whole number."); return; }
+
+        if (Cart.AddItem(GlobalMenuHolder.CurrentUserId!, productId, qty))
+            Console.WriteLine("  [✓] Item added to cart.");
+        else
+            Console.WriteLine("  [!] Could not add item — check product ID or available stock.");
+    }
 }

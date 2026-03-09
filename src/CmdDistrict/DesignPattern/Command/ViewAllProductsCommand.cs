@@ -1,10 +1,16 @@
 namespace cmdDistrict.DesignPattern.Command;
 
-/// <summary>Wraps the View All Products action from AdminMenu.</summary>
+using cmdDistrict.Models;
+using cmdDistrict.Models.Entities;
+
 public sealed class ViewAllProductsCommand : ICommand
 {
-    private readonly Action _execute;
     public string Description => "View all products in the catalog";
-    public ViewAllProductsCommand(Action execute) => _execute = execute;
-    public void Execute() => _execute();
+
+    public void Execute()
+    {
+        var products = Product.SearchByName("");
+        if (products.Count == 0) { Console.WriteLine("\n  No products in catalog."); return; }
+        MainMenu.PrintProductTable(products);
+    }
 }

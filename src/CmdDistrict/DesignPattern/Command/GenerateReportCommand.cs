@@ -1,10 +1,23 @@
 namespace cmdDistrict.DesignPattern.Command;
 
-/// <summary>Wraps the Generate Sales Report action from AdminMenu.</summary>
+using cmdDistrict.Models;
+using cmdDistrict.Models.Entities;
+
 public sealed class GenerateReportCommand : ICommand
 {
-    private readonly Action _execute;
     public string Description => "Generate a sales report";
-    public GenerateReportCommand(Action execute) => _execute = execute;
-    public void Execute() => _execute();
+
+    public void Execute()
+    {
+        Console.WriteLine("\n  -- Generate Sales Report --");
+        Console.Write("  From (yyyy-MM-dd): "); var fromStr = Console.ReadLine()?.Trim() ?? "";
+        Console.Write("  To   (yyyy-MM-dd): "); var toStr   = Console.ReadLine()?.Trim() ?? "";
+
+        if (!DateTime.TryParse(fromStr, out var from) || !DateTime.TryParse(toStr, out var to))
+        { Console.WriteLine("  [!] Invalid date format — use yyyy-MM-dd."); return; }
+
+        var report = Administrator.GenerateReport(GlobalMenuHolder.CurrentUserId!, from, to.AddDays(1).AddSeconds(-1));
+        Console.WriteLine();
+        Console.WriteLine(report);
+    }
 }

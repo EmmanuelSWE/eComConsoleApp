@@ -1,10 +1,24 @@
 namespace cmdDistrict.DesignPattern.Command;
 
-/// <summary>Wraps the Restock Product action from AdminMenu.</summary>
+using cmdDistrict.Models;
+using cmdDistrict.Models.Entities;
+
 public sealed class RestockCommand : ICommand
 {
-    private readonly Action _execute;
     public string Description => "Adjust product inventory";
-    public RestockCommand(Action execute) => _execute = execute;
-    public void Execute() => _execute();
+
+    public void Execute()
+    {
+        Console.WriteLine("\n  -- Adjust Inventory --");
+        Console.Write("  Product ID          : "); var id   = Console.ReadLine()?.Trim() ?? "";
+        Console.Write("  Delta (+add/-remove): "); var dStr = Console.ReadLine()?.Trim() ?? "";
+
+        if (!int.TryParse(dStr, out var delta))
+        { Console.WriteLine("  [!] Delta must be a whole number (e.g. +10 or -3)."); return; }
+
+        if (Administrator.AdjustInventory(GlobalMenuHolder.CurrentUserId!, id, delta))
+            Console.WriteLine("  [✓] Inventory updated.");
+        else
+            Console.WriteLine("  [!] Failed — check product ID and ensure resulting stock ≥ 0.");
+    }
 }

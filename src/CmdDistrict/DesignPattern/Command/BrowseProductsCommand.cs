@@ -1,10 +1,18 @@
 namespace cmdDistrict.DesignPattern.Command;
 
-/// <summary>Wraps the Browse Products action from CustomerMenu.</summary>
+using cmdDistrict.Models;
+using cmdDistrict.Models.Entities;
+
 public sealed class BrowseProductsCommand : ICommand
 {
-    private readonly Action _execute;
     public string Description => "Browse and search products";
-    public BrowseProductsCommand(Action execute) => _execute = execute;
-    public void Execute() => _execute();
+
+    public void Execute()
+    {
+        Console.Write("\n  Search (leave blank for all): ");
+        var query    = Console.ReadLine()?.Trim() ?? "";
+        var products = Product.SearchByName(query);
+        if (products.Count == 0) { Console.WriteLine("  No products found."); return; }
+        MainMenu.PrintProductTable(products);
+    }
 }

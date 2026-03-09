@@ -1,10 +1,20 @@
 namespace cmdDistrict.DesignPattern.Command;
 
-/// <summary>Wraps the Remove Item from Cart action from CustomerMenu.</summary>
+using cmdDistrict.Models;
+using cmdDistrict.Models.Entities;
+
 public sealed class RemoveCartItemCommand : ICommand
 {
-    private readonly Action _execute;
     public string Description => "Remove an item from your cart";
-    public RemoveCartItemCommand(Action execute) => _execute = execute;
-    public void Execute() => _execute();
+
+    public void Execute()
+    {
+        Console.Write("\n  Product ID to remove: ");
+        var productId = Console.ReadLine()?.Trim() ?? "";
+
+        if (Cart.RemoveItem(GlobalMenuHolder.CurrentUserId!, productId))
+            Console.WriteLine("  [✓] Item removed from cart.");
+        else
+            Console.WriteLine("  [!] Item not found in cart.");
+    }
 }
