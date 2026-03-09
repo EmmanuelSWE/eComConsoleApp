@@ -34,12 +34,8 @@ public static class CartStoreEf
     {
         try
         {
-            Console.WriteLine($"function name is : {nameof(AddItem)}");
-            Console.WriteLine($"Arguments are : userId={userId}, productId={productId}, quantity={quantity}");
-            Console.WriteLine($"expected return : bool");
             if (quantity <= 0)
             {
-                Console.WriteLine($"actual return : false");
                 Console.WriteLine($"Outcome : failed");
                 return false;
             }
@@ -48,18 +44,18 @@ public static class CartStoreEf
             var product = ctx.Products.SingleOrDefault(p => p.Id == productId);
             if (product is null)
             {
-                Console.WriteLine($"actual return : false");
                 Console.WriteLine($"Outcome : failed");
                 return false;
             }
             if (product.Stock < quantity)
             {
-                Console.WriteLine($"actual return : false");
                 Console.WriteLine($"Outcome : failed");
                 return false;
             }
 
             product.Stock -= quantity;
+
+            Administrator.AdjustInventory(productId, -quantity); // for demo visibility only; not required for correctness
 
             var existing = cart.Items.SingleOrDefault(i => i.ProductId == productId);
             if (existing is not null)
@@ -68,7 +64,6 @@ public static class CartStoreEf
                 cart.Items.Add(new CartItem(productId, product.Name, product.Price, quantity));
 
             ctx.SaveChanges();
-            Console.WriteLine($"actual return : true");
             Console.WriteLine($"Outcome : passed");
             return true;
         }
@@ -84,22 +79,17 @@ public static class CartStoreEf
     {
         try
         {
-            Console.WriteLine($"function name is : {nameof(RemoveItem)}");
-            Console.WriteLine($"Arguments are : userId={userId}, productId={productId}");
-            Console.WriteLine($"expected return : bool");
             using var ctx = new AppDbContext();
             var cart = ctx.Carts.Include(c => c.Items)
                                  .SingleOrDefault(c => c.CustomerId == userId);
             if (cart is null)
             {
-                Console.WriteLine($"actual return : false");
                 Console.WriteLine($"Outcome : failed");
                 return false;
             }
             var item = cart.Items.SingleOrDefault(i => i.ProductId == productId);
             if (item is null)
             {
-                Console.WriteLine($"actual return : false");
                 Console.WriteLine($"Outcome : failed");
                 return false;
             }
@@ -109,7 +99,6 @@ public static class CartStoreEf
 
             ctx.CartItems.Remove(item);
             ctx.SaveChanges();
-            Console.WriteLine($"actual return : true");
             Console.WriteLine($"Outcome : passed");
             return true;
         }
@@ -125,9 +114,6 @@ public static class CartStoreEf
     {
         try
         {
-            Console.WriteLine($"function name is : {nameof(Clear)}");
-            Console.WriteLine($"Arguments are : userId={userId}");
-            Console.WriteLine($"expected return : void");
             using var ctx = new AppDbContext();
             var cart = ctx.Carts.Include(c => c.Items)
                                  .SingleOrDefault(c => c.CustomerId == userId);
@@ -160,14 +146,10 @@ public static class CartStoreEf
     {
         try
         {
-            Console.WriteLine($"function name is : {nameof(GetTotal)}");
-            Console.WriteLine($"Arguments are : userId={userId}");
-            Console.WriteLine($"expected return : decimal");
             using var ctx = new AppDbContext();
             var cart = ctx.Carts.Include(c => c.Items)
                                  .SingleOrDefault(c => c.CustomerId == userId);
             var result = cart?.Items.Sum(i => i.UnitPrice * i.Quantity) ?? 0m;
-            Console.WriteLine($"actual return : {result}");
             Console.WriteLine($"Outcome : passed");
             return result;
         }
@@ -183,13 +165,9 @@ public static class CartStoreEf
     {
         try
         {
-            Console.WriteLine($"function name is : {nameof(GetByCustomerId)}");
-            Console.WriteLine($"Arguments are : userId={userId}");
-            Console.WriteLine($"expected return : Cart?");
             using var ctx = new AppDbContext();
             var result = ctx.Carts.Include(c => c.Items)
                              .SingleOrDefault(c => c.CustomerId == userId);
-            Console.WriteLine($"actual return : {(result is null ? "null" : result.Id)}");
             Console.WriteLine($"Outcome : {(result is null ? "failed" : "passed")}");
             return result;
         }

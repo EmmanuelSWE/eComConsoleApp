@@ -41,6 +41,23 @@ public class Administrator : User
         catch { return false; }
     }
 
+
+        public static bool AdjustInventory(string productId, int delta)
+    {
+        try
+        {
+            using var ctx = new AppDbContext();
+            var product = ctx.Products.SingleOrDefault(p => p.Id == productId);
+            if (product is null) return false;
+            var newStock = product.Stock + delta;
+            if (newStock < 0) return false;
+            product.Stock = newStock;
+            ctx.SaveChanges();
+            return true;
+        }
+        catch { return false; }
+    }
+
     /// <summary>Returns all orders newest-first. Empty list for non-admins.</summary>
     public static List<Order> ListAllOrders(string userId)
     {
