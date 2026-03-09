@@ -1,3 +1,4 @@
+using cmdDistrict.DesignPattern.Command;
 using cmdDistrict.Models.Entities;
 
 namespace cmdDistrict.Models;
@@ -24,16 +25,16 @@ public class AdminMenu : Menu
     {
         switch (input)
         {
-            case "1":  DoAddProduct();    return true;
-            case "2":  DoUpdateProduct(); return true;
-            case "3":  DoDeleteProduct(); return true;
-            case "4":  DoRestock();       return true;
-            case "5":  DoViewProducts();  return true;
-            case "6":  DoViewOrders();    return true;
-            case "7":  DoUpdateStatus();  return true;
-            case "8":  DoLowStock();      return true;
-            case "9":  DoReport();        return true;
-            case "10": DoLogout();        return true;
+            case "1":  new AddProductCommand(DoAddProduct).Execute();           return true;
+            case "2":  new UpdateProductCommand(DoUpdateProduct).Execute();     return true;
+            case "3":  new DeleteProductCommand(DoDeleteProduct).Execute();     return true;
+            case "4":  new RestockCommand(DoRestock).Execute();                 return true;
+            case "5":  new ViewAllProductsCommand(DoViewProducts).Execute();    return true;
+            case "6":  new ViewAllOrdersCommand(DoViewOrders).Execute();        return true;
+            case "7":  new UpdateOrderStatusCommand(DoUpdateStatus).Execute();  return true;
+            case "8":  new LowStockCommand(DoLowStock).Execute();               return true;
+            case "9":  new GenerateReportCommand(DoReport).Execute();           return true;
+            case "10": new LogoutCommand(DoLogout).Execute();                   return true;
             default:   return false;
         }
     }

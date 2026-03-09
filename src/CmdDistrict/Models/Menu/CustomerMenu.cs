@@ -1,5 +1,6 @@
 using cmdDistrict.Common;
 using cmdDistrict.DataAccess;
+using cmdDistrict.DesignPattern.Command;
 using cmdDistrict.Models.Entities;
 
 namespace cmdDistrict.Models;
@@ -28,18 +29,18 @@ public class CustomerMenu : Menu
     {
         switch (input)
         {
-            case "1":  DoBrowse();       return true;
-            case "2":  DoAddToCart();    return true;
-            case "3":  DoViewCart();     return true;
-            case "4":  DoUpdateQty();    return true;
-            case "5":  DoRemoveItem();   return true;
-            case "6":  DoCheckout();     return true;
-            case "7":  DoViewOrders();   return true;
-            case "8":  DoTrackOrder();   return true;
-            case "9":  DoAddReview();    return true;
-            case "10": DoViewWallet();   return true;
-            case "11": DoDeposit();      return true;
-            case "12": DoLogout();       return true;
+            case "1":  new BrowseProductsCommand(DoBrowse).Execute();      return true;
+            case "2":  new AddToCartCommand(DoAddToCart).Execute();        return true;
+            case "3":  new ViewCartCommand(DoViewCart).Execute();          return true;
+            case "4":  new UpdateCartQtyCommand(DoUpdateQty).Execute();    return true;
+            case "5":  new RemoveCartItemCommand(DoRemoveItem).Execute();  return true;
+            case "6":  new CheckoutCommand(DoCheckout).Execute();          return true;
+            case "7":  new ViewOrdersCommand(DoViewOrders).Execute();      return true;
+            case "8":  new TrackOrderCommand(DoTrackOrder).Execute();      return true;
+            case "9":  new AddReviewCommand(DoAddReview).Execute();        return true;
+            case "10": new ViewWalletCommand(DoViewWallet).Execute();      return true;
+            case "11": new DepositCommand(DoDeposit).Execute();            return true;
+            case "12": new LogoutCommand(DoLogout).Execute();              return true;
             default:   return false;
         }
     }

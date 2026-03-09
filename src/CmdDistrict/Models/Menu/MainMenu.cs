@@ -1,5 +1,6 @@
 using cmdDistrict.Common;
 using cmdDistrict.DataAccess;
+using cmdDistrict.DesignPattern.Command;
 using cmdDistrict.Models.Entities;
 
 namespace cmdDistrict.Models;
@@ -20,10 +21,10 @@ public class MainMenu : Menu
     {
         switch (input)
         {
-            case "1": DoRegister(); return true;
-            case "2": DoLogin();    return true;
-            case "3": DoBrowse();   return true;
-            case "4": DoExit();     return true;
+            case "1": new RegisterCommand(DoRegister).Execute();    return true;
+            case "2": new LoginCommand(DoLogin).Execute();          return true;
+            case "3": new BrowseGuestCommand(DoBrowse).Execute();   return true;
+            case "4": new ExitCommand(DoExit).Execute();            return true;
             default:  return false;
         }
     }
