@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class BrowseGuestCommand : ICommand
 {
-    public string Description => "Browse products as a guest";
+    public string Description => "Browse Products (Guest) — Enter a search term to filter products by name, or press Enter to see the full catalog. No login required.";
 
     public void Execute()
     {

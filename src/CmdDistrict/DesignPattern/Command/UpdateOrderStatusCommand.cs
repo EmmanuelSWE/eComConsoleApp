@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class UpdateOrderStatusCommand : ICommand
 {
-    public string Description => "Update the status of an order";
+    public string Description => "Update Order Status — Enter an Order ID and choose the new status (Paid, Shipped, Delivered, Cancelled). Only valid status transitions are allowed.";
 
     public void Execute()
     {

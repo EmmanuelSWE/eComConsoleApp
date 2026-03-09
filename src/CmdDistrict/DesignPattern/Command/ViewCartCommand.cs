@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class ViewCartCommand : ICommand
 {
-    public string Description => "View your current cart";
+    public string Description => "View Cart — Displays all items currently in your cart with quantities, unit prices, and the running total.";
 
     public void Execute()
     {

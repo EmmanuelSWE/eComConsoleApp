@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class UpdateCartQtyCommand : ICommand
 {
-    public string Description => "Update a cart item's quantity";
+    public string Description => "Update Cart Quantity — Enter the Product ID of a cart item and the new quantity. Enter 0 to remove the item. Stock is adjusted accordingly.";
 
     public void Execute()
     {

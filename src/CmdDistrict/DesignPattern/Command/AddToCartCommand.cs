@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class AddToCartCommand : ICommand
 {
-    public string Description => "Add a product to your cart";
+    public string Description => "Add to Cart — Enter the Product ID and the quantity you want. The item is reserved immediately and stock is decremented.";
 
     public void Execute()
     {

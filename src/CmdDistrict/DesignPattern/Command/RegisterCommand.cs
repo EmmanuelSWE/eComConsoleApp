@@ -6,7 +6,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class RegisterCommand : ICommand
 {
-    public string Description => "Register a new user account";
+    public string Description => "Register — Enter your name, email, password, and role (Customer/Administrator). A new account will be created and you will be signed in automatically.";
 
     public void Execute()
     {

@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class GenerateReportCommand : ICommand
 {
-    public string Description => "Generate a sales report";
+    public string Description => "Generate Report — Enter a start date and end date (yyyy-MM-dd). Prints total revenue, order count, average order value, top products, and customer totals for the period.";
 
     public void Execute()
     {

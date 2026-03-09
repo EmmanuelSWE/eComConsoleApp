@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class AddReviewCommand : ICommand
 {
-    public string Description => "Submit a product review";
+    public string Description => "Add Review — Enter a Product ID, a rating from 1 to 5, and a comment. You can only review each product once.";
 
     public void Execute()
     {

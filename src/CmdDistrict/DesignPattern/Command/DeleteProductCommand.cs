@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class DeleteProductCommand : ICommand
 {
-    public string Description => "Delete a product from the catalog";
+    public string Description => "Delete Product — Enter the Product ID to permanently remove it from the catalog. This cannot be undone.";
 
     public void Execute()
     {

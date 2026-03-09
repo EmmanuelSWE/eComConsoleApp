@@ -6,7 +6,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class ViewWalletCommand : ICommand
 {
-    public string Description => "View your wallet balance";
+    public string Description => "View Wallet — Displays your current wallet balance. Use Deposit Funds to top up before placing an order.";
 
     public void Execute()
     {

@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class UpdateProductCommand : ICommand
 {
-    public string Description => "Update an existing product";
+    public string Description => "Update Product — Enter the Product ID then provide a new name, description, price, and stock. Leave a field blank to keep its current value.";
 
     public void Execute()
     {

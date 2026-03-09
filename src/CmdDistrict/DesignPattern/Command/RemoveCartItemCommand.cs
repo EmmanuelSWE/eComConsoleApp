@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class RemoveCartItemCommand : ICommand
 {
-    public string Description => "Remove an item from your cart";
+    public string Description => "Remove Cart Item — Enter the Product ID of the item you want to remove. The reserved stock is returned to the product.";
 
     public void Execute()
     {

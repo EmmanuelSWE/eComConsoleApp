@@ -5,7 +5,7 @@ using cmdDistrict.Models.Entities;
 
 public sealed class LowStockCommand : ICommand
 {
-    public string Description => "View products with low stock (< 5)";
+    public string Description => "Low Stock Alert — Lists all products with fewer than 5 units remaining so you can restock them before they run out.";
 
     public void Execute()
     {

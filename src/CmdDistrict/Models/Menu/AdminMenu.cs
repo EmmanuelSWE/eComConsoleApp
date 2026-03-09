@@ -4,7 +4,24 @@ namespace cmdDistrict.Models;
 
 public class AdminMenu : Menu
 {
-    public AdminMenu() { Key = "admin"; Title = "Administrator Menu"; }
+    public AdminMenu()
+    {
+        Key   = "admin";
+        Title = "Administrator Menu";
+        Commands = new List<ICommand>
+        {
+            new AddProductCommand(),
+            new UpdateProductCommand(),
+            new DeleteProductCommand(),
+            new RestockCommand(),
+            new ViewAllProductsCommand(),
+            new ViewAllOrdersCommand(),
+            new UpdateOrderStatusCommand(),
+            new LowStockCommand(),
+            new GenerateReportCommand(),
+            new LogoutCommand(),
+        };
+    }
 
     public override void PrintOptions()
     {
@@ -18,22 +35,24 @@ public class AdminMenu : Menu
         Console.WriteLine("  8)  View Low-Stock Products  (stock < 5)");
         Console.WriteLine("  9)  Generate Sales Report");
         Console.WriteLine("  10) Logout");
+        Console.WriteLine("  11) Describe Menu");
     }
 
     public override bool HandleSelection(string input)
     {
         switch (input)
         {
-            case "1":  new AddProductCommand().Execute();          return true;
-            case "2":  new UpdateProductCommand().Execute();       return true;
-            case "3":  new DeleteProductCommand().Execute();       return true;
-            case "4":  new RestockCommand().Execute();             return true;
-            case "5":  new ViewAllProductsCommand().Execute();     return true;
-            case "6":  new ViewAllOrdersCommand().Execute();       return true;
-            case "7":  new UpdateOrderStatusCommand().Execute();   return true;
-            case "8":  new LowStockCommand().Execute();            return true;
-            case "9":  new GenerateReportCommand().Execute();      return true;
-            case "10": new LogoutCommand().Execute();              return true;
+            case "1":  Commands[0].Execute(); return true;
+            case "2":  Commands[1].Execute(); return true;
+            case "3":  Commands[2].Execute(); return true;
+            case "4":  Commands[3].Execute(); return true;
+            case "5":  Commands[4].Execute(); return true;
+            case "6":  Commands[5].Execute(); return true;
+            case "7":  Commands[6].Execute(); return true;
+            case "8":  Commands[7].Execute(); return true;
+            case "9":  Commands[8].Execute(); return true;
+            case "10": Commands[9].Execute(); return true;
+            case "11": DescribeMenu();        return true;
             default:   return false;
         }
     }
