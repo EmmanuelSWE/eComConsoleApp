@@ -18,9 +18,6 @@ public static class UserStoreEf
     {
         try
         {
-            Console.WriteLine($"function name is : {nameof(Login)}");
-            Console.WriteLine($"Arguments are : email={email}, password=[hidden]");
-            Console.WriteLine($"expected return : bool");
             using var ctx = new AppDbContext();
         
             var user = ctx.Users.SingleOrDefault(u =>
@@ -29,13 +26,11 @@ public static class UserStoreEf
 
             if (user is null)
             {
-                Console.WriteLine($"actual return : false");
                 Console.WriteLine($"Outcome : failed");
                 return false;
             }
 
             Session.Set(user.Id, user.Role);
-            Console.WriteLine($"actual return : true");
             Console.WriteLine($"Outcome : passed");
             return true;
         }
@@ -54,15 +49,11 @@ public static class UserStoreEf
     {
         try
         {
-            Console.WriteLine($"function name is : {nameof(Sign)}");
-            Console.WriteLine($"Arguments are : name={name}, email={email}, role={role}");
-            Console.WriteLine($"expected return : bool");
             using var ctx = new AppDbContext();
 
             bool exists = ctx.Users.Any(u => u.Email.ToLower() == email.ToLower());
             if (exists)
             {
-                Console.WriteLine($"actual return : false");
                 Console.WriteLine($"Outcome : failed");
                 return false;
             }
@@ -80,15 +71,14 @@ try
 }
 catch (Exception ex)
 {
-    Console.WriteLine("EF FULL EXCEPTION:");
-    Console.WriteLine(ex.ToString());
+    Console.WriteLine($"Outcome : encountered an error - {ex.Message}");
     throw; // optionally rethrow so you can see it in the console too
 }
 
 
             Session.Set(user.Id, user.Role);
-            Console.WriteLine($"actual return : true");
             Console.WriteLine($"Outcome : passed");
+            Console.WriteLine($"EntityMade : User : {user.Id}");
             return true;
         }
         catch (Exception ex)
@@ -106,21 +96,16 @@ catch (Exception ex)
     {
         try
         {
-            Console.WriteLine($"function name is : {nameof(ResolveRoleFor)}");
-            Console.WriteLine($"Arguments are : userId={userId}");
-            Console.WriteLine($"expected return : bool");
             using var ctx = new AppDbContext();
             var user = ctx.Users.SingleOrDefault(u => u.Id == userId);
 
             if (user is null)
             {
-                Console.WriteLine($"actual return : false");
                 Console.WriteLine($"Outcome : failed");
                 return false;
             }
 
             Session.Set(user.Id, user.Role);
-            Console.WriteLine($"actual return : true");
             Console.WriteLine($"Outcome : passed");
             return true;
         }
