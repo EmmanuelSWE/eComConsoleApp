@@ -127,14 +127,108 @@ docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=<your_sa_pw>" \
   -p 1433:1433 --name sqlserver -d mcr.microsoft.com/mssql/server:2022-latest
 ```
 
-**3. Set your connection string**
+**3. Create the database**
+
+Connect to your SQL Server instance and run the following SQL to create the `CmdDistrict` database and all required tables:
+
+```sql
+CREATE DATABASE CmdDistrict;
+GO
+
+USE CmdDistrict;
+GO
+
+-- Users (base table for Customer and Administrator)
+CREATE TABLE dbo.Users (
+    Id                      NVARCHAR(36)   NOT NULL CONSTRAINT PK_Users PRIMARY KEY,
+    Name                    NVARCHAR(200)  NOT NULL,
+    Email                   NVARCHAR(320)  NOT NULL CONSTRAINT UQ_Users_Email UNIQUE,
+    Password                NVARCHAR(256)  NOT NULL,
+    Role                    NVARCHAR(50)   NOT NULL,  -- 'Customer' | 'Administrator'
+    WalletBalance           DECIMAL(18,2)  NULL,      -- Customer only
+    DefaultShippingAddress  NVARCHAR(500)  NULL,      -- Customer only
+    PermissionLevel         NVARCHAR(100)  NULL       -- Administrator only
+);
+GO
+
+-- Products
+CREATE TABLE dbo.Products (
+    Id          NVARCHAR(36)    NOT NULL CONSTRAINT PK_Products PRIMARY KEY,
+    Name        NVARCHAR(200)   NOT NULL,
+    Description NVARCHAR(1000)  NOT NULL,
+    Price       DECIMAL(18,2)   NOT NULL,
+    Stock       INT             NOT NULL
+);
+GO
+
+-- Carts
+CREATE TABLE dbo.Carts (
+    Id          NVARCHAR(36) NOT NULL CONSTRAINT PK_Carts PRIMARY KEY,
+    CustomerId  NVARCHAR(36) NOT NULL CONSTRAINT FK_Carts_Users FOREIGN KEY REFERENCES dbo.Users(Id)
+);
+GO
+
+-- CartItems
+CREATE TABLE dbo.CartItems (
+    Id          NVARCHAR(36)   NOT NULL CONSTRAINT PK_CartItems PRIMARY KEY,
+    CartId      NVARCHAR(36)   NOT NULL CONSTRAINT FK_CartItems_Carts FOREIGN KEY REFERENCES dbo.Carts(Id),
+    ProductId   NVARCHAR(36)   NOT NULL CONSTRAINT FK_CartItems_Products FOREIGN KEY REFERENCES dbo.Products(Id),
+    ProductName NVARCHAR(200)  NOT NULL,
+    UnitPrice   DECIMAL(18,2)  NOT NULL,
+    Quantity    INT            NOT NULL
+);
+GO
+
+-- Orders
+CREATE TABLE dbo.Orders (
+    Id          NVARCHAR(36)   NOT NULL CONSTRAINT PK_Orders PRIMARY KEY,
+    CustomerId  NVARCHAR(36)   NOT NULL CONSTRAINT FK_Orders_Users FOREIGN KEY REFERENCES dbo.Users(Id),
+    Total       DECIMAL(18,2)  NOT NULL,
+    Status      INT            NOT NULL  -- 0=Pending | 1=Paid | 2=Shipped | 3=Delivered | 4=Cancelled
+);
+GO
+
+-- OrderItems
+CREATE TABLE dbo.OrderItems (
+    Id          NVARCHAR(36)   NOT NULL CONSTRAINT PK_OrderItems PRIMARY KEY,
+    OrderId     NVARCHAR(36)   NOT NULL CONSTRAINT FK_OrderItems_Orders FOREIGN KEY REFERENCES dbo.Orders(Id),
+    ProductId   NVARCHAR(36)   NOT NULL,
+    CartId      NVARCHAR(36)   NOT NULL,
+    ProductName NVARCHAR(200)  NOT NULL,
+    UnitPrice   DECIMAL(18,2)  NOT NULL,
+    Quantity    INT            NOT NULL
+);
+GO
+
+-- Payments
+CREATE TABLE dbo.Payments (
+    Id          NVARCHAR(36)   NOT NULL CONSTRAINT PK_Payments PRIMARY KEY,
+    OrderId     NVARCHAR(36)   NOT NULL CONSTRAINT FK_Payments_Orders FOREIGN KEY REFERENCES dbo.Orders(Id),
+    CustomerId  NVARCHAR(36)   NOT NULL CONSTRAINT FK_Payments_Users FOREIGN KEY REFERENCES dbo.Users(Id),
+    Amount      DECIMAL(18,2)  NOT NULL,
+    Status      INT            NOT NULL  -- 0=Pending | 1=Captured | 2=Failed | 3=Refunded
+);
+GO
+
+-- Reviews
+CREATE TABLE dbo.Reviews (
+    Id          NVARCHAR(36)    NOT NULL CONSTRAINT PK_Reviews PRIMARY KEY,
+    ProductId   NVARCHAR(36)    NOT NULL CONSTRAINT FK_Reviews_Products FOREIGN KEY REFERENCES dbo.Products(Id),
+    CustomerId  NVARCHAR(36)    NOT NULL CONSTRAINT FK_Reviews_Users FOREIGN KEY REFERENCES dbo.Users(Id),
+    Rating      INT             NOT NULL,  -- 1 to 5
+    Comment     NVARCHAR(1000)  NOT NULL
+);
+GO
+```
+
+**4. Set your connection string**
 
 In `appsettings.json` or your environment:
 ```
 Server=localhost,1433;Database=CmdDistrict;User Id=sa;Password=<your_sa_pw>;Encrypt=True;TrustServerCertificate=True;
 ```
 
-**4. Apply migrations & run**
+**5. Apply migrations & run**
 ```bash
 cd src/CmdDistrict
 dotnet ef database update
