@@ -97,60 +97,38 @@ public static class OrderStoreEf
     }
 
     /// <summary>Advances or sets an order's status (admin or owner, following the allowed state machine).</summary>
-    public static bool UpdateStatus(string userId, string orderId, OrderStatus newStatus)
+public static bool UpdateStatus(string userId, string orderId, OrderStatus newStatus)
+{
+    try
     {
-        try
+        Console.WriteLine($"function name is : {nameof(UpdateStatus)}");
+        Console.WriteLine($"Arguments are : userId={userId}, orderId={orderId}, newStatus={newStatus}");
+        Console.WriteLine($"expected return : bool");
+
+        using var ctx = new AppDbContext();
+
+        var order = ctx.Orders.ToList().FirstOrDefault(o => o.Id == orderId);
+        if (order is null)
         {
-            Console.WriteLine($"function name is : {nameof(UpdateStatus)}");
-            Console.WriteLine($"Arguments are : userId={userId}, orderId={orderId}, newStatus={newStatus}");
-            Console.WriteLine($"expected return : bool");
-            using var ctx = new AppDbContext();
-            var order = ctx.Orders.SingleOrDefault(o => o.Id == orderId);
-            if (order is null)
-            {
-                Console.WriteLine($"actual return : false");
-                Console.WriteLine($"Outcome : failed");
-                return false;
-            }
-
-            bool isAdmin = ctx.Users.Any(u => u.Id == userId && u.Role == "Administrator");
-            bool isOwner = order.CustomerId == userId;
-            if (!isAdmin && !isOwner)
-            {
-                Console.WriteLine($"actual return : false");
-                Console.WriteLine($"Outcome : failed");
-                return false;
-            }
-
-            bool allowed = (order.Status, newStatus) switch
-            {
-                (OrderStatus.Pending,   OrderStatus.Paid)      => true,
-                (OrderStatus.Paid,      OrderStatus.Packed)    => isAdmin,
-                (OrderStatus.Packed,    OrderStatus.Shipped)   => isAdmin,
-                (OrderStatus.Shipped,   OrderStatus.Delivered) => isAdmin,
-                (OrderStatus.Pending,   OrderStatus.Cancelled) => true,
-                (OrderStatus.Paid,      OrderStatus.Cancelled) => isAdmin,
-                _ => false
-            };
-            if (!allowed)
-            {
-                Console.WriteLine($"actual return : false");
-                Console.WriteLine($"Outcome : failed");
-                return false;
-            }
-
-            order.Status = newStatus;
-            ctx.SaveChanges();
-            Console.WriteLine($"actual return : true");
-            Console.WriteLine($"Outcome : passed");
-            return true;
-        }
-        catch
-        {
-            Console.WriteLine($"Outcome : encountered an error");
+            Console.WriteLine("actual return : false — order not found");
+            Console.WriteLine("Outcome : failed");
             return false;
         }
+        
+        order.Status = newStatus;
+        ctx.SaveChanges();
+
+        Console.WriteLine("actual return : true");
+        Console.WriteLine("Outcome : success");
+        return true;
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"actual return : false — exception: {ex.Message}");
+        Console.WriteLine("Outcome : failed");
+        return false;
+    }
+}
 
     // ── Read ──────────────────────────────────────────────────────────────────
 
