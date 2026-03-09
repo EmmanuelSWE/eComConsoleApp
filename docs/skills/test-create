@@ -1,0 +1,55 @@
+# Skill: test-create
+
+**Goal:** Have comprihensive test of all the functions functional requirements.
+
+## files to create 
+src/cmdDistrict/ test.cs
+
+## success 
+- test.cs must be runnable
+
+## failure 
+- a functional requirement not tested.
+- any other files changed - abort and revert to normal.
+
+## steps 
+- have every function call.
+- have testdata to input. 
+- use format to display 
+- follow 
+
+## Guardrails
+- Do not remove anything else
+- browse files to get implementation of each function.
+- follow format
+
+## Console.WriteLine-Format 
+### how to write 
+`Console.WriteLine( {message} : result) `
+psuedo code example : `Console.WriteLine($"connect success or failure: {connection_result}");`
+- 1. initial db connection check message :
+    1. writeLine : connection type :
+    2. writeLine : connection success or failure :
+
+- 2. Linq query : 
+    1. writeLine : function name is : 
+    2. writeLine : Arguments are : 
+    3. writeLine : expected return : 
+    4. writeLine : actualReturn :
+    5. WriteLine : Outcome : failed/passed/incountered an error 
+
+- at the end print summary of tests done and compared to those passed and failed.
+
+## Help 
+- check docs/specs/ implementation.md to see the expected return of functions
+
+## Prompt template
+```
+Skill: test-create
+Goal: Have comprihensive test of all the functions functional requirements.
+Files allowed: src/cmdDistrict/ test.cs
+Rules:
+- Do not remove anything else
+- browse files to get implementation of each function.
+- follow format
+```
