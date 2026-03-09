@@ -1,10 +1,22 @@
 namespace cmdDistrict.DesignPattern.Command;
 
-/// <summary>Wraps the View All Orders action from AdminMenu.</summary>
+using cmdDistrict.Models;
+using cmdDistrict.Models.Entities;
+
 public sealed class ViewAllOrdersCommand : ICommand
 {
-    private readonly Action _execute;
     public string Description => "View all customer orders";
-    public ViewAllOrdersCommand(Action execute) => _execute = execute;
-    public void Execute() => _execute();
+
+    public void Execute()
+    {
+        var orders = Administrator.ListAllOrders(GlobalMenuHolder.CurrentUserId!);
+        if (orders.Count == 0) { Console.WriteLine("\n  No orders found."); return; }
+
+        Console.WriteLine();
+        Console.WriteLine($"  {"Date",-20} {"Customer ID",-36} {"Status",-12} {"Total",9}  {"Order ID"}");
+        Console.WriteLine("  " + new string('-', 105));
+        foreach (var o in orders)
+            Console.WriteLine(
+                $"  {o.CreatedAt:yyyy-MM-dd HH:mm,-20} {o.CustomerId,-36} {o.Status,-12} {o.Total,9:C}  {o.Id}");
+    }
 }

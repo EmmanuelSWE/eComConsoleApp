@@ -1,10 +1,18 @@
 namespace cmdDistrict.DesignPattern.Command;
 
-/// <summary>Wraps the Low Stock Report action from AdminMenu.</summary>
+using cmdDistrict.Models;
+using cmdDistrict.Models.Entities;
+
 public sealed class LowStockCommand : ICommand
 {
-    private readonly Action _execute;
     public string Description => "View products with low stock (< 5)";
-    public LowStockCommand(Action execute) => _execute = execute;
-    public void Execute() => _execute();
+
+    public void Execute()
+    {
+        var low = Product.SearchByName("").Where(p => p.Stock < 5).OrderBy(p => p.Stock).ToList();
+        if (low.Count == 0) { Console.WriteLine("\n  All products have sufficient stock (≥ 5)."); return; }
+
+        Console.WriteLine("\n  -- Low-Stock Products (stock < 5) --");
+        MainMenu.PrintProductTable(low);
+    }
 }

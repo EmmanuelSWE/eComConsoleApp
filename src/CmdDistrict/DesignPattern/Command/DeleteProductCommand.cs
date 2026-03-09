@@ -1,10 +1,20 @@
 namespace cmdDistrict.DesignPattern.Command;
 
-/// <summary>Wraps the Delete Product action from AdminMenu.</summary>
+using cmdDistrict.Models;
+using cmdDistrict.Models.Entities;
+
 public sealed class DeleteProductCommand : ICommand
 {
-    private readonly Action _execute;
     public string Description => "Delete a product from the catalog";
-    public DeleteProductCommand(Action execute) => _execute = execute;
-    public void Execute() => _execute();
+
+    public void Execute()
+    {
+        Console.Write("\n  Product ID to delete: ");
+        var id = Console.ReadLine()?.Trim() ?? "";
+
+        if (Product.Delete(GlobalMenuHolder.CurrentUserId!, id))
+            Console.WriteLine("  [✓] Product deleted.");
+        else
+            Console.WriteLine("  [!] Product not found.");
+    }
 }

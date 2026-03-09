@@ -1,10 +1,24 @@
 namespace cmdDistrict.DesignPattern.Command;
 
-/// <summary>Wraps the Update Cart Item Quantity action from CustomerMenu.</summary>
+using cmdDistrict.Models;
+using cmdDistrict.Models.Entities;
+
 public sealed class UpdateCartQtyCommand : ICommand
 {
-    private readonly Action _execute;
     public string Description => "Update a cart item's quantity";
-    public UpdateCartQtyCommand(Action execute) => _execute = execute;
-    public void Execute() => _execute();
+
+    public void Execute()
+    {
+        Console.WriteLine("\n  -- Update Cart Item Quantity --");
+        Console.Write("  Product ID   : "); var productId = Console.ReadLine()?.Trim() ?? "";
+        Console.Write("  New Quantity : "); var qStr      = Console.ReadLine()?.Trim() ?? "";
+
+        if (!int.TryParse(qStr, out var newQty) || newQty <= 0)
+        { Console.WriteLine("  [!] Quantity must be a positive whole number."); return; }
+
+        if (CartItem.UpdateQuantity(GlobalMenuHolder.CurrentUserId!, productId, newQty))
+            Console.WriteLine("  [✓] Cart updated.");
+        else
+            Console.WriteLine("  [!] Update failed — check product ID or stock availability.");
+    }
 }
