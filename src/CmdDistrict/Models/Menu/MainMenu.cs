@@ -1,5 +1,6 @@
 using cmdDistrict.DesignPattern.Command;
 using cmdDistrict.Models.Entities;
+using cmdDistrict;
 
 namespace cmdDistrict.Models;
 
@@ -13,6 +14,7 @@ public class MainMenu : Menu
         Console.WriteLine("  2) Login");
         Console.WriteLine("  3) Browse Products  (guest)");
         Console.WriteLine("  4) Exit");
+        Console.WriteLine("  5) Test");
     }
 
     public override bool HandleSelection(string input)
@@ -23,6 +25,7 @@ public class MainMenu : Menu
             case "2": new LoginCommand().Execute();       return true;
             case "3": new BrowseGuestCommand().Execute(); return true;
             case "4": new ExitCommand().Execute();        return true;
+            case "5": Tests.Run();                         return true;
             default:  return false;
         }
     }
