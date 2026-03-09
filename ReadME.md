@@ -231,7 +231,6 @@ Server=localhost,1433;Database=CmdDistrict;User Id=sa;Password=<your_sa_pw>;Encr
 **5. Apply migrations & run**
 ```bash
 cd src/CmdDistrict
-dotnet ef database update
 dotnet run
 ```
 
