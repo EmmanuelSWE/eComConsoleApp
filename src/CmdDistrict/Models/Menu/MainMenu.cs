@@ -25,7 +25,7 @@ public class MainMenu : Menu
         Console.WriteLine("  2) Login");
         Console.WriteLine("  3) Browse Products  (guest)");
         Console.WriteLine("  4) Exit");
-        Console.WriteLine("  5) Test");
+        Console.WriteLine("  5) Test functions (not a real menu option)");
         Console.WriteLine("  6) Describe Menu");
     }
 
